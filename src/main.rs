@@ -101,7 +101,7 @@ impl Cube {
     }
 
     fn perm_coord(&self) -> u32 {
-        self.cp_coord() * 362880 * 2 + self.ep_coord() * 2 + self.centers as u32
+        self.cp_coord() * 362880 * 2 + self.ep_coord() * 2 + self.centers as u32 / 2
     }
 
     fn ori_coord(&self) -> u32 {
