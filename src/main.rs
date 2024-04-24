@@ -116,7 +116,7 @@ impl Cube {
     fn set_co_coord(&mut self, coord: u32) {
         let mut coord = coord;
         let mut total = 0;
-        for i in 0..5 {
+        for i in (0..5).rev() {
             self.co[i] = (coord % 3) as u8;
             total += self.co[i];
             coord /= 3;
@@ -131,7 +131,7 @@ impl Cube {
     fn set_eo_coord(&mut self, coord: u32) {
         let mut coord = coord;
         let mut total = 0;
-        for i in 0..8 {
+        for i in (0..8).rev() {
             self.eo[i] = (coord % 2) as u8;
             total += self.eo[i];
             coord /= 2;
