@@ -23,29 +23,39 @@ impl Cube {
     }
 
     fn u(&mut self) {
-        self.ep[0..4].rotate_right(1);
         self.cp[0..4].rotate_right(1);
+        self.co[0..4].rotate_right(1);
+        self.ep[0..4].rotate_right(1);
+        self.eo[0..4].rotate_right(1);
     }
 
     fn u_inv(&mut self) {
-        self.ep[0..4].rotate_left(1);
         self.cp[0..4].rotate_left(1);
+        self.co[0..4].rotate_left(1);
+        self.ep[0..4].rotate_left(1);
+        self.eo[0..4].rotate_left(1);
     }
 
     fn r(&mut self) {
         self.cp[2..6].rotate_left(1);
         self.ep[3..7].rotate_left(1);
-        for i in 2..6 {
-            self.co[self.cp[i] as usize] = (self.co[self.cp[i] as usize] + 1 + i as u8 % 2) % 3;
-        }
+        self.eo[3..7].rotate_left(1);
+        let x = self.co[2];
+        self.co[2] = (self.co[3] + 1) % 3;
+        self.co[3] = (self.co[4] + 2) % 3;
+        self.co[4] = (self.co[5] + 1) % 3;
+        self.co[5] = (x + 2) % 3;
     }
 
     fn r_inv(&mut self) {
         self.cp[2..6].rotate_right(1);
         self.ep[3..7].rotate_right(1);
-        for i in 2..6 {
-            self.co[self.cp[i] as usize] = (self.co[self.cp[i] as usize] + 1 + i as u8 % 2) % 3;
-        }
+        self.eo[3..7].rotate_right(1);
+        let x = self.co[2];
+        self.co[2] = (self.co[5] + 1) % 3;
+        self.co[5] = (self.co[4] + 2) % 3;
+        self.co[4] = (self.co[3] + 1) % 3;
+        self.co[3] = (x + 2) % 3;
     }
 
     fn m(&mut self) {
@@ -54,9 +64,11 @@ impl Cube {
         self.ep[2] = self.ep[8];
         self.ep[8] = self.ep[7];
         self.ep[7] = x;
-        for i in [0, 2, 7, 8] {
-            self.eo[self.ep[i] as usize] = (self.eo[self.ep[i] as usize] + 1) % 2;
-        }
+        let x = self.eo[0];
+        self.eo[0] = (self.eo[2] + 1) % 2;
+        self.eo[2] = (self.eo[8] + 1) % 2;
+        self.eo[8] = (self.eo[7] + 1) % 2;
+        self.eo[7] = (x + 1) % 2;
         self.centers = (self.centers + 3) % 4;
     }
 
@@ -66,9 +78,11 @@ impl Cube {
         self.ep[7] = self.ep[8];
         self.ep[8] = self.ep[2];
         self.ep[2] = x;
-        for i in [0, 2, 7, 8] {
-            self.eo[self.ep[i] as usize] = (self.eo[self.ep[i] as usize] + 1) % 2;
-        }
+        let x = self.eo[0];
+        self.eo[0] = (self.eo[7] + 1) % 2;
+        self.eo[7] = (self.eo[8] + 1) % 2;
+        self.eo[8] = (self.eo[2] + 1) % 2;
+        self.eo[2] = (x + 1) % 2;
         self.centers = (self.centers + 1) % 4;
     }
 
