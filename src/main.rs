@@ -164,70 +164,54 @@ impl Cube {
 struct TranspositionTables {
     u_perm: Vec<u32>,
     u_ori: Vec<u32>,
-    u2_perm: Vec<u32>,
-    u2_ori: Vec<u32>,
     ur_perm: Vec<u32>,
     ur_ori: Vec<u32>,
-    r2_perm: Vec<u32>,
-    r2_ori: Vec<u32>,
+    r_perm: Vec<u32>,
+    r_ori: Vec<u32>,
 }
 
 impl TranspositionTables {
     pub fn new() -> Self {
         let mut u_perm = vec![0; 87091200];
         let mut u_ori = vec![0; 62208];
-        let mut u2_perm = vec![0; 87091200];
-        let mut u2_ori = vec![0; 62208];
         let mut ur_perm = vec![0; 87091200];
         let mut ur_ori = vec![0; 62208];
-        let mut r2_perm = vec![0; 87091200];
-        let mut r2_ori = vec![0; 62208];
+        let mut r_perm = vec![0; 87091200];
+        let mut r_ori = vec![0; 62208];
 
         let mut cube = Cube::new();
 
         for i in 0..87091200 {
             cube.set_perm_coord(i);
             let i = i as usize;
+            cube.r();
+            r_perm[i] = cube.perm_coord();
+            cube.r_inv();
             cube.u();
             u_perm[i] = cube.perm_coord();
-            cube.u();
-            u2_perm[i] = cube.perm_coord();
-            cube.u_inv();
             cube.r();
             ur_perm[i] = cube.perm_coord();
-            cube.r_inv();
-            cube.u_inv();
-            cube.r();
-            cube.r();
-            r2_perm[i] = cube.perm_coord();
         }
 
         for i in 0..62208 {
             cube.set_ori_coord(i);
             let i = i as usize;
+            cube.r();
+            r_ori[i] = cube.ori_coord();
+            cube.r_inv();
             cube.u();
             u_ori[i] = cube.ori_coord();
-            cube.u();
-            u2_ori[i] = cube.ori_coord();
-            cube.u_inv();
             cube.r();
             ur_ori[i] = cube.ori_coord();
-            cube.r_inv();
-            cube.u_inv();
-            cube.r();
-            cube.r();
-            r2_ori[i] = cube.ori_coord();
         }
 
         Self {
             u_perm,
             u_ori,
-            u2_perm,
-            u2_ori,
             ur_perm,
             ur_ori,
-            r2_perm,
-            r2_ori,
+            r_perm,
+            r_ori,
         }
     }
 }
@@ -263,19 +247,14 @@ impl<'a> CoordCube<'a> {
         self.ori = self.transposition_tables.u_ori[self.ori as usize];
     }
 
-    pub fn u2(&mut self) {
-        self.perm = self.transposition_tables.u2_perm[self.perm as usize];
-        self.ori = self.transposition_tables.u2_ori[self.ori as usize];
-    }
-
     pub fn ur(&mut self) {
         self.perm = self.transposition_tables.ur_perm[self.perm as usize];
         self.ori = self.transposition_tables.ur_ori[self.ori as usize];
     }
 
-    pub fn r2(&mut self) {
-        self.perm = self.transposition_tables.r2_perm[self.perm as usize];
-        self.ori = self.transposition_tables.r2_ori[self.ori as usize];
+    pub fn r(&mut self) {
+        self.perm = self.transposition_tables.r_perm[self.perm as usize];
+        self.ori = self.transposition_tables.r_ori[self.ori as usize];
     }
 
     pub fn encode(&self) -> u64 {
@@ -324,16 +303,20 @@ fn main() {
 
     let mut cube = CoordCube::new(&transposition_tables);
     BfsBuilder::new()
-        .expander(move |enc, arr: &mut [_; 4]| {
+        .expander(move |enc, arr: &mut [_; 6]| {
             cube.decode(enc);
             cube.u();
             arr[0] = cube.encode();
-            cube.u2();
+            cube.u();
             arr[1] = cube.encode();
-            cube.ur();
+            cube.u();
             arr[2] = cube.encode();
-            cube.r2();
+            cube.ur();
             arr[3] = cube.encode();
+            cube.r();
+            arr[4] = cube.encode();
+            cube.r();
+            arr[5] = cube.encode();
         })
         .callback(Callback)
         .threads(48)
