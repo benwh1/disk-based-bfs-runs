@@ -57,7 +57,7 @@ impl Cube {
         for i in [0, 2, 7, 8] {
             self.eo[self.ep[i] as usize] = (self.eo[self.ep[i] as usize] + 1) % 2;
         }
-        self.centers = (self.centers + 3) % 3;
+        self.centers = (self.centers + 3) % 4;
     }
 
     fn m_inv(&mut self) {
@@ -69,7 +69,7 @@ impl Cube {
         for i in [0, 2, 7, 8] {
             self.eo[self.ep[i] as usize] = (self.eo[self.ep[i] as usize] + 1) % 2;
         }
-        self.centers = (self.centers + 1) % 3;
+        self.centers = (self.centers + 1) % 4;
     }
 
     fn rw(&mut self) {
