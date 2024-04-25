@@ -343,12 +343,16 @@ fn main() {
         .callback(Callback)
         .threads(48)
         .chunk_size_bytes(529079040)
-        .update_set_capacity(1 << 22)
+        .update_set_capacity(3 * (1 << 16))
         .capacity_check_frequency(256)
         .initial_states(&[solved])
         .state_size(5417769369600)
-        .root_directories(&[PathBuf::from("run")])
-        .initial_memory_limit(1 << 32)
+        .root_directories(&[
+            PathBuf::from("/media/ben/drive2/bfs/3x3-U-r/"),
+            PathBuf::from("/media/ben/drive3/bfs/3x3-U-r/"),
+            PathBuf::from("/media/ben/drive4/bfs/3x3-U-r/"),
+        ])
+        .initial_memory_limit(1 << 34)
         .update_files_compression_threshold(1 << 30)
         .build()
         .unwrap()
