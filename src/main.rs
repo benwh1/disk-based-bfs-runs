@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
-use disk_based_bfs::{callback::BfsCallback, one_bit::BfsBuilder};
+use disk_based_bfs::{
+    callback::BfsCallback,
+    one_bit::{Bfs, BfsSettingsBuilder},
+};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, EnvFilter};
 
 struct Cube {
@@ -324,23 +327,7 @@ fn main() {
     let solved = CoordCube::new(&transposition_tables).encode();
 
     let mut cube = CoordCube::new(&transposition_tables);
-    BfsBuilder::new()
-        .expander(move |enc, arr: &mut [_; 6]| {
-            cube.decode(enc);
-            cube.u();
-            arr[0] = cube.encode();
-            cube.u();
-            arr[1] = cube.encode();
-            cube.u();
-            arr[2] = cube.encode();
-            cube.urw();
-            arr[3] = cube.encode();
-            cube.rw();
-            arr[4] = cube.encode();
-            cube.rw();
-            arr[5] = cube.encode();
-        })
-        .callback(Callback)
+    let settings = BfsSettingsBuilder::new()
         .threads(48)
         .chunk_size_bytes(529079040)
         .update_set_capacity(3 * (1 << 16))
@@ -355,6 +342,25 @@ fn main() {
         .initial_memory_limit(1 << 34)
         .update_files_compression_threshold(1 << 30)
         .build()
-        .unwrap()
-        .run();
+        .unwrap();
+
+    let expander = move |enc, arr: &mut [_; 6]| {
+        cube.decode(enc);
+        cube.u();
+        arr[0] = cube.encode();
+        cube.u();
+        arr[1] = cube.encode();
+        cube.u();
+        arr[2] = cube.encode();
+        cube.urw();
+        arr[3] = cube.encode();
+        cube.rw();
+        arr[4] = cube.encode();
+        cube.rw();
+        arr[5] = cube.encode();
+    };
+    let callback = Callback;
+
+    let bfs = Bfs::new(&settings, expander, callback);
+    bfs.run();
 }
