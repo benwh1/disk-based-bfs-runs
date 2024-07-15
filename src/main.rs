@@ -515,7 +515,7 @@ fn main() {
     let mut cube = CoordCube::new(&transposition_tables);
     let settings = BfsSettingsBuilder::new()
         .threads(48)
-        .chunk_size_bytes(529079040)
+        .chunk_size_bytes(519631200)
         .update_memory(1 << 36)
         .capacity_check_frequency(256)
         .initial_states(&[solved])
@@ -528,6 +528,8 @@ fn main() {
         .initial_memory_limit(1 << 32)
         .update_files_compression_threshold(1 << 32)
         .buf_io_capacity(1 << 23)
+        .use_locked_io(true)
+        .sync_filesystem(true)
         .build()
         .unwrap();
 
