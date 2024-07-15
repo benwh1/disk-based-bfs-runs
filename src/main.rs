@@ -712,4 +712,22 @@ mod tests {
 
         assert_eq!(cube.eo_coord(), eo);
     }
+
+    #[test]
+    fn test_edges_coord() {
+        let mut cube = Cube::new();
+        for i in 0..TranspositionTables::EDGES_SIZE {
+            cube.set_edges_coord(i as u32);
+            assert_eq!(cube.edges_coord(), i as u32);
+        }
+    }
+
+    #[test]
+    fn test_corners_coord() {
+        let mut cube = Cube::new();
+        for i in 0..TranspositionTables::CORNERS_SIZE {
+            cube.set_corners_coord(i as u32);
+            assert_eq!(cube.corners_coord(), i as u32);
+        }
+    }
 }
