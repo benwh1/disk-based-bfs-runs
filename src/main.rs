@@ -22,6 +22,23 @@ impl Cube {
         }
     }
 
+    fn is_solved(&self) -> bool {
+        if !(self.ep == [0, 1, 0, 1, 1, 1, 1, 1, 1, 2, 1, 2]
+            && self.cp == [0, 0, 0, 0, 1, 1, 1, 1]
+            && self.co == [0; 8])
+        {
+            return false;
+        }
+
+        for i in [1, 3, 4, 5, 6, 7, 8, 10] {
+            if self.eo[i] != 0 {
+                return false;
+            }
+        }
+
+        true
+    }
+
     fn u(&mut self) {
         let a = self.ep[0];
         self.ep[0] = self.ep[3];
@@ -255,11 +272,14 @@ impl Cube {
         combinatorics::indexing::encode_multiset(self.ep, [2, 8, 2]) as u32
     }
 
+    /// Depends on `self.ep`
     fn eo_coord(&self) -> u32 {
         let mut coord = 0;
-        for i in EDGES_WITH_ORIENTATION {
-            coord *= 2;
-            coord += self.eo[i];
+        for i in 0..12 {
+            if self.ep[i] == 1 {
+                coord *= 2;
+                coord += self.eo[i];
+            }
         }
         coord as u32
     }
@@ -281,10 +301,13 @@ impl Cube {
         self.ep = combinatorics::indexing::decode_multiset(coord as u128, [2, 8, 2]);
     }
 
+    /// Depends on `self.ep`
     fn set_eo_coord(&mut self, mut coord: u32) {
-        for &i in EDGES_WITH_ORIENTATION.iter().rev() {
-            self.eo[i] = (coord % 2) as u8;
-            coord /= 2;
+        for i in 0..12 {
+            if self.ep[i] == 1 {
+                self.eo[i] = (coord % 2) as u8;
+                coord /= 2;
+            }
         }
     }
 
@@ -308,6 +331,7 @@ impl Cube {
     }
 
     fn set_edges_coord(&mut self, coord: u32) {
+        // Must set EP before EO
         self.set_ep_coord(coord / 256);
         self.set_eo_coord(coord % 256);
     }
@@ -590,4 +614,89 @@ fn main() {
 
     let bfs = Bfs::new(&settings, &locked_io, expander, callback);
     bfs.run();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cube() {
+        let mut cube = Cube::new();
+        cube.u();
+        assert!(!cube.is_solved());
+        cube.u();
+        assert!(cube.is_solved());
+        cube.d();
+        assert!(!cube.is_solved());
+        cube.d();
+        assert!(cube.is_solved());
+        cube.l();
+        assert!(!cube.is_solved());
+        cube.l();
+        assert!(!cube.is_solved());
+        cube.l();
+        assert!(!cube.is_solved());
+        cube.l();
+        assert!(cube.is_solved());
+
+        // R U R' U' R' F R2 U' R' U' R U R' F'
+        for _ in 0..2 {
+            cube.r();
+            cube.u();
+            cube.rp();
+            cube.up();
+            cube.rp();
+            cube.f();
+            cube.r();
+            cube.r();
+            cube.up();
+            cube.rp();
+            cube.up();
+            cube.r();
+            cube.u();
+            cube.rp();
+            cube.fp();
+        }
+        assert!(cube.is_solved());
+    }
+
+    #[test]
+    fn test_eo_coord_1() {
+        let mut cube = Cube::new();
+        cube.u();
+        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        cube.up();
+        cube.l();
+        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        cube.lp();
+        cube.f();
+        assert_eq!(cube.eo, [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0]);
+        cube.fp();
+        cube.r();
+        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        cube.rp();
+        cube.b();
+        assert_eq!(cube.eo, [0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0]);
+        cube.bp();
+        cube.d();
+        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn test_eo_coord_2() {
+        let mut cube = Cube::new();
+        let eo = cube.eo_coord();
+
+        // flip the 4 edges that don't have orientation, and check eo coord
+        cube.r();
+        cube.lp();
+        cube.f();
+        cube.f();
+        cube.u();
+        cube.u();
+        cube.f();
+
+        assert_eq!(cube.eo_coord(), eo);
+    }
 }
