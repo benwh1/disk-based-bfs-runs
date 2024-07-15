@@ -145,10 +145,10 @@ impl Cube {
         self.eo[6] = (self.eo[5] + 1) % 2;
         self.eo[5] = (a + 1) % 2;
         let a = self.eo[8];
-        self.eo[8] = self.eo[11];
-        self.eo[11] = self.eo[10];
-        self.eo[10] = self.eo[9];
-        self.eo[9] = a;
+        self.eo[8] = self.eo[9];
+        self.eo[9] = self.eo[10];
+        self.eo[10] = self.eo[11];
+        self.eo[11] = a;
 
         let a = self.cp[0];
         self.cp[0] = self.cp[3];
