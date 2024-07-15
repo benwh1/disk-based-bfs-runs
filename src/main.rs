@@ -276,10 +276,10 @@ impl Cube {
         for i in 0..12 {
             if self.ep[i] == 1 {
                 coord *= 2;
-                coord += self.eo[i];
+                coord += self.eo[i] as u32;
             }
         }
-        coord as u32
+        coord
     }
 
     fn cp_coord(&self) -> u32 {
