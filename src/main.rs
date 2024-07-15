@@ -302,7 +302,7 @@ impl Cube {
 
     /// Depends on `self.ep`
     fn set_eo_coord(&mut self, mut coord: u32) {
-        for i in 0..12 {
+        for i in (0..12).rev() {
             if self.ep[i] == 1 {
                 self.eo[i] = (coord % 2) as u8;
                 coord /= 2;
