@@ -288,11 +288,11 @@ impl Cube {
 
     fn co_coord(&self) -> u32 {
         let mut coord = 0;
-        for i in 0..8 {
+        for i in 0..7 {
             coord *= 3;
-            coord += self.co[i];
+            coord += self.co[i] as u32;
         }
-        coord as u32
+        coord
     }
 
     fn set_ep_coord(&mut self, coord: u32) {
@@ -314,10 +314,14 @@ impl Cube {
     }
 
     fn set_co_coord(&mut self, mut coord: u32) {
-        for i in (0..8).rev() {
-            self.co[i] = (coord % 3) as u8;
+        let mut total = 0;
+        for i in (0..7).rev() {
+            let x = (coord % 3) as u8;
+            total = (total + x) % 3;
+            self.co[i] = x;
             coord /= 3;
         }
+        self.co[7] = (3 - total) % 3;
     }
 
     fn edges_coord(&self) -> u32 {
