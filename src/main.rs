@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use disk_based_bfs::{bfs::Bfs, callback::BfsCallback, io::LockedIO, settings::BfsSettingsBuilder};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, EnvFilter};
 
+#[derive(Debug)]
 struct Cube {
     ep: [u8; 12],
     eo: [u8; 12],
@@ -341,6 +342,16 @@ impl Cube {
     fn set_corners_coord(&mut self, coord: u32) {
         self.set_cp_coord(coord / 2187);
         self.set_co_coord(coord % 2187);
+    }
+
+    fn encode(&self) -> u64 {
+        self.edges_coord() as u64 * TranspositionTables::CORNERS_SIZE as u64
+            + self.corners_coord() as u64
+    }
+
+    fn decode(&mut self, coord: u64) {
+        self.set_edges_coord((coord / TranspositionTables::CORNERS_SIZE as u64) as u32);
+        self.set_corners_coord((coord % TranspositionTables::CORNERS_SIZE as u64) as u32);
     }
 }
 
