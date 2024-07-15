@@ -730,4 +730,156 @@ mod tests {
             assert_eq!(cube.corners_coord(), i as u32);
         }
     }
+
+    #[test]
+    fn test_encode() {
+        let mut x = 0u64;
+        let mut cube = Cube::new();
+        for _ in 0..65536 {
+            x = x.wrapping_mul(450349535401847371);
+            x = x.wrapping_add(380506838312516788);
+            let coord = x % 116397388800;
+            cube.decode(coord);
+            assert_eq!(cube.encode(), coord);
+        }
+    }
+
+    #[test]
+    fn test_depth_1() {
+        let mut cube = Cube::new();
+        let solved = cube.encode();
+        let mut arr = [0; 18];
+        println!("{cube:?}");
+        cube.u();
+        println!("u {cube:?}");
+        arr[0] = cube.encode();
+        cube.u();
+        println!("u {cube:?}");
+        arr[1] = cube.encode();
+        cube.u();
+        println!("u {cube:?}");
+        arr[2] = cube.encode();
+        cube.u();
+        println!("u {cube:?}");
+        cube.l();
+        println!("l {cube:?}");
+        arr[3] = cube.encode();
+        cube.l();
+        println!("l {cube:?}");
+        arr[4] = cube.encode();
+        cube.l();
+        println!("l {cube:?}");
+        arr[5] = cube.encode();
+        cube.l();
+        println!("l {cube:?}");
+        cube.f();
+        println!("f {cube:?}");
+        arr[6] = cube.encode();
+        cube.f();
+        println!("f {cube:?}");
+        arr[7] = cube.encode();
+        cube.f();
+        println!("f {cube:?}");
+        arr[8] = cube.encode();
+        cube.f();
+        println!("f {cube:?}");
+        cube.r();
+        println!("r {cube:?}");
+        arr[9] = cube.encode();
+        cube.r();
+        println!("r {cube:?}");
+        arr[10] = cube.encode();
+        cube.r();
+        println!("r {cube:?}");
+        arr[11] = cube.encode();
+        cube.r();
+        println!("r {cube:?}");
+        cube.b();
+        println!("b {cube:?}");
+        arr[12] = cube.encode();
+        cube.b();
+        println!("b {cube:?}");
+        arr[13] = cube.encode();
+        cube.b();
+        println!("b {cube:?}");
+        arr[14] = cube.encode();
+        cube.b();
+        println!("b {cube:?}");
+        cube.d();
+        println!("d {cube:?}");
+        arr[15] = cube.encode();
+        cube.d();
+        println!("d {cube:?}");
+        arr[16] = cube.encode();
+        cube.d();
+        println!("d {cube:?}");
+        arr[17] = cube.encode();
+        cube.d();
+        println!("d {cube:?}");
+
+        assert_eq!(arr[0], arr[2]);
+        assert_eq!(arr[1], solved);
+        assert_eq!(arr[15], arr[17]);
+        assert_eq!(arr[16], solved);
+        println!("{arr:?}");
+    }
+
+    #[test]
+    fn test_coord_cube() {
+        let transposition_tables = TranspositionTables::new();
+        let mut coord_cube = CoordCube::new(&transposition_tables);
+        let mut cube = Cube::new();
+
+        let mut x = 0u64;
+        for _ in 0..65536 {
+            x = x.wrapping_mul(450349535401847371);
+            x = x.wrapping_add(380506838312516788);
+
+            let coord = x % 116397388800;
+
+            cube.decode(coord);
+            coord_cube.decode(coord);
+
+            println!("coord = {coord}");
+            println!("cube = {cube:?}");
+            for i in 0..4 {
+                coord_cube.u();
+                cube.u();
+                println!("u{}", i + 1);
+                println!("cube = {cube:?}");
+                assert_eq!(cube.encode(), coord_cube.encode());
+            }
+            for i in 0..4 {
+                coord_cube.l();
+                cube.l();
+                println!("l{}", i + 1);
+                println!("cube = {cube:?}");
+                assert_eq!(cube.encode(), coord_cube.encode());
+            }
+            for i in 0..4 {
+                coord_cube.f();
+                cube.f();
+                println!("f{}", i + 1);
+                assert_eq!(cube.encode(), coord_cube.encode());
+            }
+            for i in 0..4 {
+                coord_cube.r();
+                cube.r();
+                println!("r{}", i + 1);
+                assert_eq!(cube.encode(), coord_cube.encode());
+            }
+            for i in 0..4 {
+                coord_cube.b();
+                cube.b();
+                println!("b{}", i + 1);
+                assert_eq!(cube.encode(), coord_cube.encode());
+            }
+            for i in 0..4 {
+                coord_cube.d();
+                cube.d();
+                println!("d{}", i + 1);
+                assert_eq!(cube.encode(), coord_cube.encode());
+            }
+        }
+    }
 }
