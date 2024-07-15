@@ -3,8 +3,6 @@ use std::path::PathBuf;
 use disk_based_bfs::{bfs::Bfs, callback::BfsCallback, io::LockedIO, settings::BfsSettingsBuilder};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, EnvFilter};
 
-const EDGES_WITH_ORIENTATION: [usize; 8] = [1, 3, 4, 5, 6, 7, 8, 10];
-
 struct Cube {
     ep: [u8; 12],
     eo: [u8; 12],
