@@ -567,6 +567,7 @@ pub fn main() {
         .buf_io_capacity(1 << 23)
         .use_locked_io(true)
         .sync_filesystem(true)
+        .compress_update_files_at_end_of_iter(true)
         .build()
         .unwrap();
 
