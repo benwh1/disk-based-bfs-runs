@@ -551,7 +551,7 @@ pub fn main() {
     tracing_subscriber::registry()
         .with(
             EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "disk_based_bfs=info,bfs_3x3_2_color=info".into()),
+                .unwrap_or_else(|_| "disk_based_bfs=trace,bfs_3x3_2_color=trace".into()),
         )
         .with(tracing_subscriber::fmt::layer().compact().with_ansi(false))
         .init();
