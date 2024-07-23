@@ -1,9 +1,6 @@
 use std::path::PathBuf;
 
-use disk_based_bfs::{
-    callback::BfsCallback,
-    one_bit::{Bfs, BfsSettingsBuilder},
-};
+use disk_based_bfs::{bfs::Bfs, callback::BfsCallback, io::LockedIO, settings::BfsSettingsBuilder};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, EnvFilter};
 
 struct Cube {
@@ -330,7 +327,7 @@ fn main() {
     let settings = BfsSettingsBuilder::new()
         .threads(48)
         .chunk_size_bytes(529079040)
-        .update_set_capacity(3 * (1 << 16))
+        .update_memory(1 << 37)
         .capacity_check_frequency(256)
         .initial_states(&[solved])
         .state_size(5417769369600)
@@ -340,7 +337,11 @@ fn main() {
             PathBuf::from("/media/ben/drive4/bfs/3x3-U-r/"),
         ])
         .initial_memory_limit(1 << 34)
-        .update_files_compression_threshold(1 << 30)
+        .update_files_compression_threshold(1 << 32)
+        .buf_io_capacity(1 << 23)
+        .use_locked_io(true)
+        .sync_filesystem(true)
+        .compress_update_files_at_end_of_iter(true)
         .build()
         .unwrap();
 
@@ -361,6 +362,15 @@ fn main() {
     };
     let callback = Callback;
 
-    let bfs = Bfs::new(&settings, expander, callback);
+    let locked_io = LockedIO::new(
+        &settings,
+        vec![
+            PathBuf::from("/media/ben/drive2/bfs/3x3-U-r/"),
+            PathBuf::from("/media/ben/drive3/bfs/3x3-U-r/"),
+            PathBuf::from("/media/ben/drive4/bfs/3x3-U-r/"),
+        ],
+    );
+
+    let bfs = Bfs::new(&settings, &locked_io, expander, callback);
     bfs.run();
 }
