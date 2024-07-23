@@ -579,8 +579,8 @@ pub fn main() {
             PathBuf::from("/media/ben/drive3/bfs/3x3-2-color-corners/"),
             PathBuf::from("/media/ben/drive4/bfs/3x3-2-color-corners/"),
         ])
-        .initial_memory_limit(1 << 32)
-        .update_files_compression_threshold(1 << 32)
+        .initial_memory_limit(1 << 28)
+        .update_files_compression_threshold(1 << 34)
         .buf_io_capacity(1 << 23)
         .use_locked_io(true)
         .sync_filesystem(true)
