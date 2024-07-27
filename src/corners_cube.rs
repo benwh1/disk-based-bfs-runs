@@ -789,6 +789,61 @@ mod tests {
     }
 
     #[test]
+    fn test_random_scramble() {
+        let mut cube = Cube::new();
+
+        // Scramble: D B2 D L2 D U R2 B2 L2 R2 U R B' D' U' F R' U2 B D R2
+        cube.d();
+        cube.b();
+        cube.b();
+        cube.d();
+        cube.l();
+        cube.l();
+        cube.d();
+        cube.u();
+        cube.r();
+        cube.r();
+        cube.b();
+        cube.b();
+        cube.l();
+        cube.l();
+        cube.r();
+        cube.r();
+        cube.u();
+        cube.r();
+        cube.bp();
+        cube.dp();
+        cube.up();
+        cube.f();
+        cube.rp();
+        cube.u();
+        cube.u();
+        cube.b();
+        cube.d();
+        cube.r();
+        cube.r();
+
+        // Solution: R' B2 R2 U R F' D2 R F R2 L
+        cube.rp();
+        cube.b();
+        cube.b();
+        cube.r();
+        cube.r();
+        cube.u();
+        cube.r();
+        cube.fp();
+        cube.d();
+        cube.d();
+        cube.r();
+        cube.f();
+        cube.r();
+        cube.r();
+        cube.l();
+
+        assert!(cube.is_solved());
+    }
+
+    #[test]
     fn test_edges_coord() {
         let mut cube = Cube::new();
         for i in 0..EDGES_SIZE {
