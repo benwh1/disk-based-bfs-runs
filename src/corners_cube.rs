@@ -118,13 +118,13 @@ impl Cube {
 
         let a = self.co[0];
         self.co[0] = (self.co[5] + 1) % 3;
-        self.co[5] = (self.co[4] + 2) % 3;
+        self.co[5] = self.co[4];
         self.co[4] = (self.co[1] + 1) % 3;
-        self.co[1] = (a + 2) % 3;
+        self.co[1] = (a + 1) % 3;
         let a = self.co[2];
-        self.co[2] = (self.co[3] + 1) % 3;
+        self.co[2] = self.co[3];
         self.co[3] = (self.co[6] + 2) % 3;
-        self.co[6] = (self.co[7] + 1) % 3;
+        self.co[6] = (self.co[7] + 2) % 3;
         self.co[7] = (a + 2) % 3;
     }
 
