@@ -740,7 +740,7 @@ mod tests {
     }
 
     #[test]
-    fn test_eo_coord_1() {
+    fn test_eo() {
         let mut cube = Cube::new();
         cube.u();
         assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
@@ -762,7 +762,7 @@ mod tests {
     }
 
     #[test]
-    fn test_eo_coord_2() {
+    fn test_eo_coord() {
         let mut cube = Cube::new();
         let eo = cube.eo_coord();
 
