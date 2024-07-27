@@ -699,6 +699,47 @@ mod tests {
     }
 
     #[test]
+    fn test_moves_order() {
+        let mut cube = Cube::new();
+        for i in 0..4 {
+            cube.u();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.x();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.y();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.l();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.f();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.r();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.b();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.d();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.z();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+    }
+
+    #[test]
     fn test_eo_coord_1() {
         let mut cube = Cube::new();
         cube.u();
