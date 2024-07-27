@@ -176,12 +176,12 @@ impl Cube {
         self.co[0] = (self.co[3] + 1) % 3;
         self.co[3] = (self.co[2] + 1) % 3;
         self.co[2] = (self.co[1] + 2) % 3;
-        self.co[1] = a;
+        self.co[1] = (a + 2) % 3;
         let a = self.co[4];
         self.co[4] = (self.co[5] + 2) % 3;
         self.co[5] = (self.co[6] + 1) % 3;
         self.co[6] = (self.co[7] + 1) % 3;
-        self.co[7] = a;
+        self.co[7] = (a + 2) % 3;
     }
 
     fn z(&mut self) {
