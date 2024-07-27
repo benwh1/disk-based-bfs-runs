@@ -749,16 +749,16 @@ mod tests {
         assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         cube.lp();
         cube.f();
-        assert_eq!(cube.eo, [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0]);
+        assert_eq!(cube.eo, [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]);
         cube.fp();
         cube.r();
-        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0]);
         cube.rp();
         cube.b();
-        assert_eq!(cube.eo, [0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0]);
+        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0]);
         cube.bp();
         cube.d();
-        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0]);
     }
 
     #[test]
@@ -766,12 +766,24 @@ mod tests {
         let mut cube = Cube::new();
         let eo = cube.eo_coord();
 
-        // flip 4 edges that don't have orientation, and check eo coord
+        // Flip 2 edges that don't have orientation, and check eo coord
+        // R U' R2 U2 R L F R' F' L' U2 R U
+        cube.r();
+        cube.up();
+        cube.r();
+        cube.r();
         cube.u();
+        cube.u();
+        cube.r();
         cube.l();
-        cube.l();
-        cube.d();
         cube.f();
+        cube.rp();
+        cube.fp();
+        cube.lp();
+        cube.u();
+        cube.u();
+        cube.r();
+        cube.u();
 
         assert_eq!(cube.eo_coord(), eo);
     }
