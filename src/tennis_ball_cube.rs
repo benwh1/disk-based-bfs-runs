@@ -55,10 +55,10 @@ impl Cube {
         self.cp[2] = self.cp[1];
         self.cp[1] = a;
         let a = self.co[0];
-        self.co[0] = self.co[3];
-        self.co[3] = self.co[2];
-        self.co[2] = self.co[1];
-        self.co[1] = a;
+        self.co[0] = (self.co[3] + 2) % 3;
+        self.co[3] = (self.co[2] + 1) % 3;
+        self.co[2] = (self.co[1] + 2) % 3;
+        self.co[1] = (a + 1) % 3;
     }
 
     fn x(&mut self) {
@@ -79,9 +79,9 @@ impl Cube {
         self.ep[6] = a;
 
         let a = self.eo[0];
-        self.eo[0] = (self.eo[10] + 1) % 2;
+        self.eo[0] = self.eo[10];
         self.eo[10] = (self.eo[8] + 1) % 2;
-        self.eo[8] = (self.eo[2] + 1) % 2;
+        self.eo[8] = self.eo[2];
         self.eo[2] = (a + 1) % 2;
         let a = self.eo[1];
         self.eo[1] = self.eo[4];
@@ -107,13 +107,13 @@ impl Cube {
 
         let a = self.co[0];
         self.co[0] = (self.co[5] + 1) % 3;
-        self.co[5] = (self.co[4] + 2) % 3;
+        self.co[5] = (self.co[4] + 1) % 3;
         self.co[4] = (self.co[1] + 1) % 3;
-        self.co[1] = (a + 2) % 3;
+        self.co[1] = a;
         let a = self.co[2];
-        self.co[2] = (self.co[3] + 1) % 3;
+        self.co[2] = self.co[3];
         self.co[3] = (self.co[6] + 2) % 3;
-        self.co[6] = (self.co[7] + 1) % 3;
+        self.co[6] = (self.co[7] + 2) % 3;
         self.co[7] = (a + 2) % 3;
     }
 
@@ -145,10 +145,10 @@ impl Cube {
         self.eo[6] = (self.eo[5] + 1) % 2;
         self.eo[5] = (a + 1) % 2;
         let a = self.eo[8];
-        self.eo[8] = self.eo[9];
-        self.eo[9] = self.eo[10];
-        self.eo[10] = self.eo[11];
-        self.eo[11] = a;
+        self.eo[8] = (self.eo[9] + 1) % 2;
+        self.eo[9] = (self.eo[10] + 1) % 2;
+        self.eo[10] = (self.eo[11] + 1) % 2;
+        self.eo[11] = (a + 1) % 2;
 
         let a = self.cp[0];
         self.cp[0] = self.cp[3];
@@ -162,15 +162,15 @@ impl Cube {
         self.cp[7] = a;
 
         let a = self.co[0];
-        self.co[0] = self.co[3];
-        self.co[3] = self.co[2];
-        self.co[2] = self.co[1];
-        self.co[1] = a;
+        self.co[0] = (self.co[3] + 2) % 3;
+        self.co[3] = (self.co[2] + 1) % 3;
+        self.co[2] = (self.co[1] + 2) % 3;
+        self.co[1] = (a + 1) % 3;
         let a = self.co[4];
-        self.co[4] = self.co[5];
-        self.co[5] = self.co[6];
-        self.co[6] = self.co[7];
-        self.co[7] = a;
+        self.co[4] = (self.co[5] + 1) % 3;
+        self.co[5] = (self.co[6] + 2) % 3;
+        self.co[6] = (self.co[7] + 1) % 3;
+        self.co[7] = (a + 2) % 3;
     }
 
     fn z(&mut self) {
