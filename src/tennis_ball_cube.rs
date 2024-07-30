@@ -682,7 +682,48 @@ mod tests {
     }
 
     #[test]
-    fn test_eo_coord_1() {
+    fn test_moves_order() {
+        let mut cube = Cube::new();
+        for i in 0..4 {
+            cube.u();
+            assert_eq!(cube.is_solved(), i == 1 || i == 3);
+        }
+        for i in 0..4 {
+            cube.x();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.y();
+            assert_eq!(cube.is_solved(), i == 1 || i == 3);
+        }
+        for i in 0..4 {
+            cube.l();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.f();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.r();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.b();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.d();
+            assert_eq!(cube.is_solved(), i == 1 || i == 3);
+        }
+        for i in 0..4 {
+            cube.z();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+    }
+
+    #[test]
+    fn test_eo() {
         let mut cube = Cube::new();
         cube.u();
         assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
@@ -691,33 +732,104 @@ mod tests {
         assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         cube.lp();
         cube.f();
-        assert_eq!(cube.eo, [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0]);
+        assert_eq!(cube.eo, [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]);
         cube.fp();
         cube.r();
         assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         cube.rp();
         cube.b();
-        assert_eq!(cube.eo, [0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0]);
+        assert_eq!(cube.eo, [0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0]);
         cube.bp();
         cube.d();
-        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1]);
     }
 
     #[test]
-    fn test_eo_coord_2() {
+    fn test_eo_coord() {
         let mut cube = Cube::new();
         let eo = cube.eo_coord();
 
-        // flip the 4 edges that don't have orientation, and check eo coord
+        // Flip the 4 edges that don't have orientation, and check eo coord
+        // R D R2 B' L2 U R' L' U' L2 F R2 D' L
         cube.r();
+        cube.d();
+        cube.r();
+        cube.r();
+        cube.bp();
+        cube.l();
+        cube.l();
+        cube.u();
+        cube.rp();
+        cube.lp();
+        cube.up();
+        cube.l();
+        cube.l();
+        cube.f();
+        cube.r();
+        cube.r();
+        cube.dp();
+        cube.l();
+
+        assert_eq!(cube.eo_coord(), eo);
+    }
+
+    #[test]
+    fn test_random_scramble() {
+        let mut cube = Cube::new();
+
+        // Scramble: D F2 R' U2 F L U2 F U F D2 R B2 L' F2 U2 D2 L' D2 L2 F2
+        cube.d();
+        cube.f();
+        cube.f();
+        cube.rp();
+        cube.u();
+        cube.u();
+        cube.f();
+        cube.l();
+        cube.u();
+        cube.u();
+        cube.f();
+        cube.u();
+        cube.f();
+        cube.d();
+        cube.d();
+        cube.r();
+        cube.b();
+        cube.b();
         cube.lp();
         cube.f();
         cube.f();
         cube.u();
         cube.u();
+        cube.d();
+        cube.d();
+        cube.lp();
+        cube.d();
+        cube.d();
+        cube.l();
+        cube.l();
+        cube.f();
         cube.f();
 
-        assert_eq!(cube.eo_coord(), eo);
+        // Solution: D2 R L2 F U' F2 U2 F D R2 F'
+        cube.d();
+        cube.d();
+        cube.r();
+        cube.l();
+        cube.l();
+        cube.f();
+        cube.up();
+        cube.f();
+        cube.f();
+        cube.u();
+        cube.u();
+        cube.f();
+        cube.d();
+        cube.r();
+        cube.r();
+        cube.fp();
+
+        assert!(cube.is_solved());
     }
 
     #[test]
