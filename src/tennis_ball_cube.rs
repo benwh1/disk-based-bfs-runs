@@ -735,11 +735,14 @@ pub fn decode_depth_13_positions() {
         }
         s.pop();
         s.push('\n');
-        let tot = cube.eo.iter().sum::<u8>() % 2;
-        for i in 0..11 {
+        if cube.eo.iter().sum::<u8>() % 2 == 0 {
+            let a = cube.ep.iter().position(|&x| x == 0).unwrap();
+            cube.eo[a] = 1 - cube.eo[a];
+        }
+        for i in 0..12 {
             s.push_str(&format!("{} ", cube.eo[i]));
         }
-        s.push_str(&tot.to_string());
+        s.pop();
         s.push_str("\nEnd\n");
         println!("{s}");
     }
