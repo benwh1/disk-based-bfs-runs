@@ -529,7 +529,7 @@ struct Callback;
 
 impl BfsCallback for Callback {
     fn new_state(&mut self, depth: usize, state: u64) {
-        if depth >= 12 {
+        if depth > 12 {
             tracing::info!("depth {depth} state {state}");
         }
     }
