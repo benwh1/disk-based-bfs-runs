@@ -557,7 +557,7 @@ pub fn main() {
 
     let mut cube = CoordCube::new(&transposition_tables);
     let settings = BfsSettingsBuilder::new()
-        .threads(6)
+        .threads(24)
         // 48 chunks
         .chunk_size_bytes(303118200)
         .update_memory(1 << 37)
