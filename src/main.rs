@@ -47,16 +47,16 @@ impl Cube {
         self.ep[4] = self.ep[5];
         self.ep[5] = self.ep[6];
         self.ep[6] = a;
-        let a = self.cp[3];
+        let a = self.cp[2];
+        self.cp[2] = self.cp[3];
         self.cp[3] = self.cp[4];
         self.cp[4] = self.cp[5];
-        self.cp[5] = self.cp[6];
-        self.cp[6] = a;
-        let a = self.co[3];
-        self.co[3] = (self.co[4] + 1) % 3;
-        self.co[4] = (self.co[5] + 2) % 3;
-        self.co[5] = (self.co[6] + 1) % 3;
-        self.co[6] = (a + 2) % 3;
+        self.cp[5] = a;
+        let a = self.co[2];
+        self.co[2] = (self.co[3] + 1) % 3;
+        self.co[3] = (self.co[4] + 2) % 3;
+        self.co[4] = (self.co[5] + 1) % 3;
+        self.co[5] = (a + 2) % 3;
         self.is_even_perm = !self.is_even_perm;
     }
 
