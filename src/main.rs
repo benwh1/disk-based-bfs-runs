@@ -350,4 +350,35 @@ mod tests {
             assert_eq!(cube.encode(), coord_cube.encode());
         }
     }
+
+    #[test]
+    fn test_random_scramble() {
+        // Scramble: U R U F2 R F2 F2 R U U U U U R U F2 U R U U U U U F2 R F2 U R F2 R U U F2 R R
+        // F2 F2 U U U F2 U R F2 R U R R F2 R U F2 F2 U U F2 F2 R F2 F2 R F2 U R U U U F2 U R R R U
+        // F2 U F2 R U R U R U U U R F2 F2 F2 R R U R U U U R F2 F2 U R
+        let moves = [
+            0, 1, 0, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0, 1, 0, 2, 0, 1, 0, 0, 0, 0, 0, 2, 1, 2, 0, 1, 2,
+            1, 0, 0, 2, 1, 1, 2, 2, 0, 0, 0, 2, 0, 1, 2, 1, 0, 1, 1, 2, 1, 0, 2, 2, 0, 0, 2, 2, 1,
+            2, 2, 1, 2, 0, 1, 0, 0, 0, 2, 0, 1, 1, 1, 0, 2, 0, 2, 1, 0, 1, 0, 1, 0, 0, 0, 1, 2, 2,
+            2, 1, 1, 0, 1, 0, 0, 0, 1, 2, 2, 0, 1,
+        ];
+
+        let mut cube = Cube::new();
+        for mv in moves {
+            cube.do_move(mv);
+        }
+
+        // Solution: F2 R U F2 U2 R F2 U' R2 U' F2 R2 U R2 U2 R2 U2 F2 R2
+        let solution = [
+            2, 1, 0, 2, 0, 0, 1, 2, 0, 0, 0, 1, 1, 0, 0, 0, 2, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 2,
+            1, 1,
+        ];
+
+        for mv in solution {
+            cube.do_move(mv);
+        }
+
+        let solved_cube = Cube::new();
+        assert_eq!(cube.encode(), solved_cube.encode());
+    }
 }
