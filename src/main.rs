@@ -69,6 +69,27 @@ impl Cube {
         self.co.swap(3, 6);
     }
 
+    pub fn do_move(&mut self, m: u8) {
+        match m {
+            0 => self.u(),
+            1 => self.r(),
+            2 => self.f2(),
+            _ => panic!("Invalid move"),
+        }
+    }
+
+    fn up(&mut self) {
+        self.u();
+        self.u();
+        self.u();
+    }
+
+    fn rp(&mut self) {
+        self.r();
+        self.r();
+        self.r();
+    }
+
     fn ep_coord(&self) -> u32 {
         combinatorics::indexing::encode_even_permutation(self.ep) as u32
     }
@@ -124,6 +145,153 @@ impl Cube {
     }
 }
 
+struct TranspositionTables {
+    u_edges: Vec<u32>,
+    u_corners: Vec<u32>,
+    r_edges: Vec<u32>,
+    r_corners: Vec<u32>,
+    // We need two sets of tables for f2 because parity determines whether we swap pieces 7 and 8,
+    // and those two pieces are on the F face but not in U or R
+    f2_edges_even: Vec<u32>,
+    f2_edges_odd: Vec<u32>,
+    f2_corners: Vec<u32>,
+}
+
+impl TranspositionTables {
+    pub fn new() -> Self {
+        let mut u_edges = vec![0; EP_SIZE as usize];
+        let mut u_corners = vec![0; CORNERS_SIZE as usize];
+        let mut r_edges = vec![0; EP_SIZE as usize];
+        let mut r_corners = vec![0; CORNERS_SIZE as usize];
+        let mut f2_edges_even = vec![0; EP_SIZE as usize];
+        let mut f2_edges_odd = vec![0; EP_SIZE as usize];
+        let mut f2_corners = vec![0; CORNERS_SIZE as usize];
+
+        let mut cube = Cube::new();
+
+        for i in 0..CORNERS_SIZE as usize {
+            cube.set_corners_coord(i as u32);
+            cube.u();
+            u_corners[i] = cube.corners_coord();
+            cube.up();
+            cube.r();
+            r_corners[i] = cube.corners_coord();
+            cube.rp();
+            cube.f2();
+            f2_corners[i] = cube.corners_coord();
+        }
+
+        cube.is_even_perm = true;
+
+        for i in 0..EP_SIZE as usize {
+            cube.set_ep_coord(i as u32);
+            cube.u();
+            u_edges[i] = cube.ep_coord();
+            cube.up();
+            cube.r();
+            r_edges[i] = cube.ep_coord();
+            cube.rp();
+            cube.f2();
+            f2_edges_even[i] = cube.ep_coord();
+        }
+
+        cube.is_even_perm = false;
+
+        for i in 0..EP_SIZE as usize {
+            cube.set_ep_coord(i as u32);
+            cube.f2();
+            f2_edges_odd[i] = cube.ep_coord();
+        }
+
+        Self {
+            u_edges,
+            u_corners,
+            r_edges,
+            r_corners,
+            f2_edges_even,
+            f2_edges_odd,
+            f2_corners,
+        }
+    }
+}
+
+#[derive(Clone)]
+struct CoordCube<'a> {
+    edges: u32,
+    corners: u32,
+    is_even_perm: bool,
+    transposition_tables: &'a TranspositionTables,
+}
+
+impl<'a> std::fmt::Debug for CoordCube<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CoordCube")
+            .field("edges", &self.edges)
+            .field("corners", &self.corners)
+            .finish()
+    }
+}
+
+impl<'a> CoordCube<'a> {
+    pub fn new(transposition_tables: &'a TranspositionTables) -> Self {
+        let cube = Cube::new();
+        Self {
+            edges: cube.ep_coord(),
+            corners: cube.corners_coord(),
+            is_even_perm: cube.is_even_perm,
+            transposition_tables,
+        }
+    }
+
+    pub fn u(&mut self) {
+        self.edges = self.transposition_tables.u_edges[self.edges as usize];
+        self.corners = self.transposition_tables.u_corners[self.corners as usize];
+        self.is_even_perm = !self.is_even_perm;
+    }
+
+    pub fn r(&mut self) {
+        self.edges = self.transposition_tables.r_edges[self.edges as usize];
+        self.corners = self.transposition_tables.r_corners[self.corners as usize];
+        self.is_even_perm = !self.is_even_perm;
+    }
+
+    pub fn f2(&mut self) {
+        self.edges = if self.is_even_perm {
+            self.transposition_tables.f2_edges_even[self.edges as usize]
+        } else {
+            self.transposition_tables.f2_edges_odd[self.edges as usize]
+        };
+        self.corners = self.transposition_tables.f2_corners[self.corners as usize];
+    }
+
+    pub fn do_move(&mut self, m: u8) {
+        match m {
+            0 => self.u(),
+            1 => self.r(),
+            2 => self.f2(),
+            _ => panic!("Invalid move"),
+        }
+    }
+
+    pub fn encode(&self) -> u64 {
+        self.edges as u64 * CORNERS_SIZE as u64 + self.corners as u64
+    }
+
+    pub fn decode(&mut self, coord: u64) {
+        self.edges = (coord / CORNERS_SIZE as u64) as u32;
+        self.corners = (coord % CORNERS_SIZE as u64) as u32;
+    }
+}
+
+impl From<CoordCube<'_>> for Cube {
+    fn from(value: CoordCube<'_>) -> Self {
+        let mut cube = Cube::new();
+        cube.set_ep_coord(value.edges as u32);
+        cube.set_corners_coord(value.corners as u32);
+        cube
+    }
+}
+
 fn main() {}
 
 #[cfg(test)]
@@ -131,7 +299,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_encode() {
+    fn test_cube_decode_encode() {
         let mut x = 0u64;
         let mut cube = Cube::new();
         for _ in 0..65536 {
@@ -143,6 +311,43 @@ mod tests {
             assert_eq!(cube.encode(), coord);
             assert_eq!(combinatorics::sign::is_even(cube.cp), cube.is_even_perm);
             assert_eq!(combinatorics::sign::is_even(cube.ep), cube.is_even_perm);
+        }
+    }
+
+    #[test]
+    fn test_coord_cube_decode_encode() {
+        let transposition_tables = TranspositionTables::new();
+        let mut cube = CoordCube::new(&transposition_tables);
+
+        let mut x = 0u64;
+        for _ in 0..65536 {
+            x = x
+                .wrapping_mul(450349535401847371)
+                .wrapping_add(380506838312516788);
+            let coord = x % STATE_SIZE;
+            cube.decode(coord);
+            assert_eq!(cube.encode(), coord);
+        }
+    }
+
+    #[test]
+    fn test_cube_matches_coord_cube() {
+        let transposition_tables = TranspositionTables::new();
+
+        let mut cube = Cube::new();
+        let mut coord_cube = CoordCube::new(&transposition_tables);
+
+        let mut x = 0u64;
+        for _ in 0..65536 {
+            x = x
+                .wrapping_mul(450349535401847371)
+                .wrapping_add(380506838312516788);
+            let mv = (x % 3) as u8;
+
+            cube.do_move(mv);
+            coord_cube.do_move(mv);
+
+            assert_eq!(cube.encode(), coord_cube.encode());
         }
     }
 }
