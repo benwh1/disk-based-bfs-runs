@@ -1,3 +1,8 @@
+use std::path::PathBuf;
+
+use disk_based_bfs::{bfs::Bfs, callback::BfsCallback, io::LockedIO, settings::BfsSettingsBuilder};
+use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, EnvFilter};
+
 const EP_SIZE: u32 = 181440;
 const CP_SIZE: u32 = 5040;
 const CO_SIZE: u32 = 729;
@@ -292,7 +297,93 @@ impl From<CoordCube<'_>> for Cube {
     }
 }
 
-fn main() {}
+#[derive(Clone)]
+struct Callback;
+
+impl BfsCallback for Callback {
+    fn new_state(&mut self, depth: usize, state: u64) {
+        if depth >= 21 {
+            tracing::info!("depth {depth} state {state}");
+        }
+    }
+
+    fn end_of_chunk(&self, _: usize, _: usize) {}
+}
+
+fn main() {
+    tracing_subscriber::registry()
+        .with(
+            EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "disk_based_bfs=trace,bfs_3x3_U_R_F2=trace".into()),
+        )
+        .with(
+            tracing_subscriber::fmt::layer()
+                .compact()
+                .with_ansi(false)
+                .with_thread_names(true)
+                .with_line_number(true),
+        )
+        .init();
+
+    let transposition_tables = TranspositionTables::new();
+    let solved = CoordCube::new(&transposition_tables).encode() as u64;
+
+    let mut cube = CoordCube::new(&transposition_tables);
+    let settings = BfsSettingsBuilder::new()
+        .threads(48)
+        // 4 * 48 chunks
+        .chunk_size_bytes(434010150)
+        .update_memory(1 << 37)
+        .capacity_check_frequency(256)
+        .initial_states(&[solved])
+        .state_size(666639590400)
+        .root_directories(&[
+            PathBuf::from("/media/ben/drive2/bfs/3x3-U-R-F2/"),
+            PathBuf::from("/media/ben/drive3/bfs/3x3-U-R-F2/"),
+            PathBuf::from("/media/ben/drive4/bfs/3x3-U-R-F2/"),
+        ])
+        .initial_memory_limit(1 << 28)
+        .update_files_compression_threshold(3 * (1 << 32))
+        .buf_io_capacity(1 << 23)
+        .use_locked_io(true)
+        .sync_filesystem(true)
+        .compress_update_files_at_end_of_iter(true)
+        .build()
+        .unwrap();
+
+    let expander = move |enc, arr: &mut [_; 7]| {
+        cube.decode(enc);
+        cube.u();
+        arr[0] = cube.encode();
+        cube.u();
+        arr[1] = cube.encode();
+        cube.u();
+        arr[2] = cube.encode();
+        cube.u();
+        cube.r();
+        arr[3] = cube.encode();
+        cube.r();
+        arr[4] = cube.encode();
+        cube.r();
+        arr[5] = cube.encode();
+        cube.r();
+        cube.f2();
+        arr[6] = cube.encode();
+    };
+    let callback = Callback;
+
+    let locked_io = LockedIO::new(
+        &settings,
+        vec![
+            PathBuf::from("/media/ben/drive2/bfs/3x3-U-R-F2/"),
+            PathBuf::from("/media/ben/drive3/bfs/3x3-U-R-F2/"),
+            PathBuf::from("/media/ben/drive4/bfs/3x3-U-R-F2/"),
+        ],
+    );
+
+    let bfs = Bfs::new(&settings, &locked_io, expander, callback);
+    bfs.run();
+}
 
 #[cfg(test)]
 mod tests {
