@@ -283,8 +283,13 @@ impl<'a> CoordCube<'a> {
     }
 
     pub fn decode(&mut self, coord: u64) {
-        self.edges = (coord / CORNERS_SIZE as u64) as u32;
         self.corners = (coord % CORNERS_SIZE as u64) as u32;
+        self.edges = (coord / CORNERS_SIZE as u64) as u32;
+
+        let mut cube = Cube::new();
+        cube.set_corners_coord(self.corners);
+
+        self.is_even_perm = cube.is_even_perm;
     }
 }
 
