@@ -9,7 +9,7 @@ const CO_SIZE: u32 = 729;
 const CORNERS_SIZE: u32 = CP_SIZE * CO_SIZE;
 const STATE_SIZE: u64 = EP_SIZE as u64 * CORNERS_SIZE as u64;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Cube {
     ep: [u8; 9],
     cp: [u8; 7],
@@ -291,8 +291,8 @@ impl<'a> CoordCube<'a> {
 impl From<CoordCube<'_>> for Cube {
     fn from(value: CoordCube<'_>) -> Self {
         let mut cube = Cube::new();
-        cube.set_ep_coord(value.edges as u32);
         cube.set_corners_coord(value.corners as u32);
+        cube.set_ep_coord(value.edges as u32);
         cube
     }
 }
@@ -438,6 +438,29 @@ mod tests {
             cube.do_move(mv);
             coord_cube.do_move(mv);
 
+            assert_eq!(cube.encode(), coord_cube.encode());
+        }
+    }
+
+    #[test]
+    fn test_cube_matches_coord_cube_2() {
+        let transposition_tables = TranspositionTables::new();
+
+        let mut cube = Cube::new();
+        let mut coord_cube = CoordCube::new(&transposition_tables);
+
+        let mut x = 0u64;
+        for _ in 0..65536 {
+            x = x
+                .wrapping_mul(450349535401847371)
+                .wrapping_add(380506838312516788);
+            let enc = x % STATE_SIZE;
+
+            cube.decode(enc);
+            coord_cube.decode(enc);
+            let cube2 = Cube::from(coord_cube.clone());
+
+            assert_eq!(cube, cube2);
             assert_eq!(cube.encode(), coord_cube.encode());
         }
     }
