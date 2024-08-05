@@ -3,6 +3,9 @@ use std::path::PathBuf;
 use disk_based_bfs::{bfs::Bfs, callback::BfsCallback, io::LockedIO, settings::BfsSettingsBuilder};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, EnvFilter};
 
+/// Corners: UFL ULB UBR URF DFR DRB
+/// Edges: UF UL UB UR FR BR DF DR DB
+#[derive(Debug, PartialEq)]
 struct Cube {
     cp: [u8; 6],
     co: [u8; 6],
@@ -23,67 +26,81 @@ impl Cube {
     }
 
     fn u(&mut self) {
-        self.cp[0..4].rotate_right(1);
-        self.co[0..4].rotate_right(1);
-        self.ep[0..4].rotate_right(1);
-        self.eo[0..4].rotate_right(1);
+        let a = self.cp[0];
+        self.cp[0] = self.cp[3];
+        self.cp[3] = self.cp[2];
+        self.cp[2] = self.cp[1];
+        self.cp[1] = a;
+        let a = self.co[0];
+        self.co[0] = self.co[3];
+        self.co[3] = self.co[2];
+        self.co[2] = self.co[1];
+        self.co[1] = a;
+        let a = self.ep[0];
+        self.ep[0] = self.ep[3];
+        self.ep[3] = self.ep[2];
+        self.ep[2] = self.ep[1];
+        self.ep[1] = a;
+        let a = self.eo[0];
+        self.eo[0] = self.eo[3];
+        self.eo[3] = self.eo[2];
+        self.eo[2] = self.eo[1];
+        self.eo[1] = a;
     }
 
     fn u_inv(&mut self) {
-        self.cp[0..4].rotate_left(1);
-        self.co[0..4].rotate_left(1);
-        self.ep[0..4].rotate_left(1);
-        self.eo[0..4].rotate_left(1);
+        self.u();
+        self.u();
+        self.u();
     }
 
     fn r(&mut self) {
-        self.cp[2..6].rotate_left(1);
-        self.ep[3..7].rotate_left(1);
-        self.eo[3..7].rotate_left(1);
-        let x = self.co[2];
+        let a = self.cp[2];
+        self.cp[2] = self.cp[3];
+        self.cp[3] = self.cp[4];
+        self.cp[4] = self.cp[5];
+        self.cp[5] = a;
+        let a = self.co[2];
         self.co[2] = (self.co[3] + 1) % 3;
         self.co[3] = (self.co[4] + 2) % 3;
         self.co[4] = (self.co[5] + 1) % 3;
-        self.co[5] = (x + 2) % 3;
+        self.co[5] = (a + 2) % 3;
+        let a = self.ep[3];
+        self.ep[3] = self.ep[4];
+        self.ep[4] = self.ep[7];
+        self.ep[7] = self.ep[5];
+        self.ep[5] = a;
+        let a = self.eo[3];
+        self.eo[3] = self.eo[4];
+        self.eo[4] = self.eo[7];
+        self.eo[7] = self.eo[5];
+        self.eo[5] = a;
     }
 
     fn r_inv(&mut self) {
-        self.cp[2..6].rotate_right(1);
-        self.ep[3..7].rotate_right(1);
-        self.eo[3..7].rotate_right(1);
-        let x = self.co[2];
-        self.co[2] = (self.co[5] + 1) % 3;
-        self.co[5] = (self.co[4] + 2) % 3;
-        self.co[4] = (self.co[3] + 1) % 3;
-        self.co[3] = (x + 2) % 3;
+        self.r();
+        self.r();
+        self.r();
     }
 
     fn m(&mut self) {
-        let x = self.ep[0];
+        let a = self.ep[0];
         self.ep[0] = self.ep[2];
         self.ep[2] = self.ep[8];
-        self.ep[8] = self.ep[7];
-        self.ep[7] = x;
-        let x = self.eo[0];
+        self.ep[8] = self.ep[6];
+        self.ep[6] = a;
+        let a = self.eo[0];
         self.eo[0] = (self.eo[2] + 1) % 2;
         self.eo[2] = (self.eo[8] + 1) % 2;
-        self.eo[8] = (self.eo[7] + 1) % 2;
-        self.eo[7] = (x + 1) % 2;
-        self.centers = (self.centers + 3) % 4;
+        self.eo[8] = (self.eo[6] + 1) % 2;
+        self.eo[6] = (a + 1) % 2;
+        self.centers = (self.centers + 1) % 4;
     }
 
     fn m_inv(&mut self) {
-        let x = self.ep[0];
-        self.ep[0] = self.ep[7];
-        self.ep[7] = self.ep[8];
-        self.ep[8] = self.ep[2];
-        self.ep[2] = x;
-        let x = self.eo[0];
-        self.eo[0] = (self.eo[7] + 1) % 2;
-        self.eo[7] = (self.eo[8] + 1) % 2;
-        self.eo[8] = (self.eo[2] + 1) % 2;
-        self.eo[2] = (x + 1) % 2;
-        self.centers = (self.centers + 1) % 4;
+        self.m();
+        self.m();
+        self.m();
     }
 
     fn rw(&mut self) {
@@ -373,4 +390,54 @@ fn main() {
 
     let bfs = Bfs::new(&settings, &locked_io, expander, callback);
     bfs.run();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cube_random_moves() {
+        let scramble = "r' U' r U' r U' r' U' r' U' r2 U2 r U' r U2 r U' r' U r2 U2 r2 U' r2 \
+        U' r2 U2 r' U r2 U' r U' r U' r' U' r2 U2 r' U r2 U' r U' r2 U r U";
+
+        let do_alg = |cube: &mut Cube, alg: &str| {
+            for mv in alg.split_whitespace() {
+                match mv {
+                    "U" => cube.u(),
+                    "U2" => {
+                        cube.u();
+                        cube.u();
+                    }
+                    "U'" => cube.u_inv(),
+                    "r" => cube.rw(),
+                    "r2" => {
+                        cube.rw();
+                        cube.rw();
+                    }
+                    "r'" => cube.rw_inv(),
+                    _ => panic!("Invalid move {mv}"),
+                }
+            }
+        };
+
+        let mut cube = Cube::new();
+        do_alg(&mut cube, scramble);
+
+        assert_eq!(
+            cube,
+            Cube {
+                cp: [1, 4, 0, 2, 3, 5],
+                co: [0, 2, 1, 1, 1, 1],
+                ep: [8, 6, 4, 0, 7, 2, 5, 3, 1],
+                eo: [0, 0, 0, 1, 0, 1, 1, 1, 0],
+                centers: 0,
+            },
+        );
+
+        let solution = "U' r' U' r2 U r2 U r2 U' r' U r' U r' U2 r' U2 r U2 r2 U r U' r' U'";
+        do_alg(&mut cube, solution);
+
+        assert_eq!(cube, Cube::new());
+    }
 }
