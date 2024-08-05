@@ -25,6 +25,10 @@ impl Cube {
         }
     }
 
+    fn is_solved(&self) -> bool {
+        *self == Cube::new()
+    }
+
     fn u(&mut self) {
         let a = self.cp[0];
         self.cp[0] = self.cp[3];
@@ -46,6 +50,11 @@ impl Cube {
         self.eo[3] = self.eo[2];
         self.eo[2] = self.eo[1];
         self.eo[1] = a;
+    }
+
+    fn u2(&mut self) {
+        self.u();
+        self.u();
     }
 
     fn u_inv(&mut self) {
@@ -77,6 +86,11 @@ impl Cube {
         self.eo[5] = a;
     }
 
+    fn r2(&mut self) {
+        self.r();
+        self.r();
+    }
+
     fn r_inv(&mut self) {
         self.r();
         self.r();
@@ -97,6 +111,11 @@ impl Cube {
         self.centers = (self.centers + 1) % 4;
     }
 
+    fn m2(&mut self) {
+        self.m();
+        self.m();
+    }
+
     fn m_inv(&mut self) {
         self.m();
         self.m();
@@ -108,9 +127,32 @@ impl Cube {
         self.m_inv();
     }
 
+    fn rw2(&mut self) {
+        self.r2();
+        self.m2();
+    }
+
     fn rw_inv(&mut self) {
         self.r_inv();
         self.m();
+    }
+
+    fn do_move(&mut self, mv: &str) {
+        match mv {
+            "U" => self.u(),
+            "U2" => self.u2(),
+            "U'" => self.u_inv(),
+            "R" => self.r(),
+            "R2" => self.r2(),
+            "R'" => self.r_inv(),
+            "M" => self.m(),
+            "M2" => self.m2(),
+            "M'" => self.m_inv(),
+            "r" => self.rw(),
+            "r2" => self.rw2(),
+            "r'" => self.rw_inv(),
+            _ => panic!("Invalid move {mv}"),
+        }
     }
 
     fn cp_coord(&self) -> u32 {
@@ -203,8 +245,6 @@ impl Cube {
 struct TranspositionTables {
     u_perm: Vec<u32>,
     u_ori: Vec<u32>,
-    urw_perm: Vec<u32>,
-    urw_ori: Vec<u32>,
     rw_perm: Vec<u32>,
     rw_ori: Vec<u32>,
 }
@@ -213,8 +253,6 @@ impl TranspositionTables {
     pub fn new() -> Self {
         let mut u_perm = vec![0; 87091200];
         let mut u_ori = vec![0; 62208];
-        let mut urw_perm = vec![0; 87091200];
-        let mut urw_ori = vec![0; 62208];
         let mut rw_perm = vec![0; 87091200];
         let mut rw_ori = vec![0; 62208];
 
@@ -223,32 +261,26 @@ impl TranspositionTables {
         for i in 0..87091200 {
             cube.set_perm_coord(i);
             let i = i as usize;
-            cube.rw();
-            rw_perm[i] = cube.perm_coord();
-            cube.rw_inv();
             cube.u();
             u_perm[i] = cube.perm_coord();
+            cube.u_inv();
             cube.rw();
-            urw_perm[i] = cube.perm_coord();
+            rw_perm[i] = cube.perm_coord();
         }
 
         for i in 0..62208 {
             cube.set_ori_coord(i);
             let i = i as usize;
-            cube.rw();
-            rw_ori[i] = cube.ori_coord();
-            cube.rw_inv();
             cube.u();
             u_ori[i] = cube.ori_coord();
+            cube.u_inv();
             cube.rw();
-            urw_ori[i] = cube.ori_coord();
+            rw_ori[i] = cube.ori_coord();
         }
 
         Self {
             u_perm,
             u_ori,
-            urw_perm,
-            urw_ori,
             rw_perm,
             rw_ori,
         }
@@ -286,14 +318,43 @@ impl<'a> CoordCube<'a> {
         self.ori = self.transposition_tables.u_ori[self.ori as usize];
     }
 
-    pub fn urw(&mut self) {
-        self.perm = self.transposition_tables.urw_perm[self.perm as usize];
-        self.ori = self.transposition_tables.urw_ori[self.ori as usize];
+    pub fn u2(&mut self) {
+        self.u();
+        self.u();
+    }
+
+    pub fn u_inv(&mut self) {
+        self.u();
+        self.u();
+        self.u();
     }
 
     pub fn rw(&mut self) {
         self.perm = self.transposition_tables.rw_perm[self.perm as usize];
         self.ori = self.transposition_tables.rw_ori[self.ori as usize];
+    }
+
+    pub fn rw2(&mut self) {
+        self.rw();
+        self.rw();
+    }
+
+    pub fn rw_inv(&mut self) {
+        self.rw();
+        self.rw();
+        self.rw();
+    }
+
+    pub fn do_move(&mut self, mv: &str) {
+        match mv {
+            "U" => self.u(),
+            "U2" => self.u2(),
+            "U'" => self.u_inv(),
+            "r" => self.rw(),
+            "r2" => self.rw2(),
+            "r'" => self.rw_inv(),
+            _ => panic!("Invalid move {mv}"),
+        }
     }
 
     pub fn encode(&self) -> u64 {
@@ -370,7 +431,8 @@ fn main() {
         arr[1] = cube.encode();
         cube.u();
         arr[2] = cube.encode();
-        cube.urw();
+        cube.u();
+        cube.rw();
         arr[3] = cube.encode();
         cube.rw();
         arr[4] = cube.encode();
@@ -397,32 +459,71 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_cube_random_moves() {
+    fn test_move_order() {
+        let mut cube = Cube::new();
+        for i in 0..4 {
+            cube.u();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.r();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.m();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.rw();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+    }
+
+    #[test]
+    fn test_perm_coord() {
+        let mut cube = Cube::new();
+
+        for i in 0..87091200 {
+            cube.set_perm_coord(i);
+            assert_eq!(cube.perm_coord(), i);
+        }
+
+        for i in 0..62208 {
+            cube.set_ori_coord(i);
+            assert_eq!(cube.ori_coord(), i);
+        }
+    }
+
+    #[test]
+    fn test_cube_random_scramble() {
         let scramble = "r' U' r U' r U' r' U' r' U' r2 U2 r U' r U2 r U' r' U r2 U2 r2 U' r2 \
         U' r2 U2 r' U r2 U' r U' r U' r' U' r2 U2 r' U r2 U' r U' r2 U r U";
 
-        let do_alg = |cube: &mut Cube, alg: &str| {
-            for mv in alg.split_whitespace() {
-                match mv {
-                    "U" => cube.u(),
-                    "U2" => {
-                        cube.u();
-                        cube.u();
-                    }
-                    "U'" => cube.u_inv(),
-                    "r" => cube.rw(),
-                    "r2" => {
-                        cube.rw();
-                        cube.rw();
-                    }
-                    "r'" => cube.rw_inv(),
-                    _ => panic!("Invalid move {mv}"),
-                }
-            }
-        };
+        let transposition_tables = TranspositionTables::new();
 
         let mut cube = Cube::new();
-        do_alg(&mut cube, scramble);
+        let mut coord_cube = CoordCube::new(&transposition_tables);
+
+        for (i, mv) in scramble.split_whitespace().enumerate() {
+            cube.do_move(mv);
+            coord_cube.do_move(mv);
+
+            assert_eq!(
+                cube.perm_coord(),
+                coord_cube.perm,
+                "perm differs after move {i} = {mv}"
+            );
+            assert_eq!(
+                cube.ori_coord(),
+                coord_cube.ori,
+                "ori differs after move {i} = {mv}"
+            );
+            assert_eq!(
+                cube,
+                Cube::from(coord_cube.clone()),
+                "cube differs after move {i} = {mv}"
+            );
+        }
 
         assert_eq!(
             cube,
@@ -436,7 +537,15 @@ mod tests {
         );
 
         let solution = "U' r' U' r2 U r2 U r2 U' r' U r' U r' U2 r' U2 r U2 r2 U r U' r' U'";
-        do_alg(&mut cube, solution);
+
+        for mv in solution.split_whitespace() {
+            cube.do_move(mv);
+            coord_cube.do_move(mv);
+
+            assert_eq!(cube.perm_coord(), coord_cube.perm);
+            assert_eq!(cube.ori_coord(), coord_cube.ori);
+            assert_eq!(cube, Cube::from(coord_cube.clone()));
+        }
 
         assert_eq!(cube, Cube::new());
     }
