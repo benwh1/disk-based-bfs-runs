@@ -5,3 +5,10 @@ version = 3
 [[package]]
 name = "bfs-megaminx-U-R"
 version = "0.1.0"
+dependencies = [
+ "combinatorics",
+]
+
+[[package]]
+name = "combinatorics"
+version = "0.1.0"
