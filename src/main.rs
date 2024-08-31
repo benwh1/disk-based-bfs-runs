@@ -1,6 +1,7 @@
-const CP_SIZE: usize = 20160;
-const CO_SIZE: usize = 2187;
-const EP_SIZE: usize = 181440;
+pub const CP_SIZE: usize = 20160;
+pub const CO_SIZE: usize = 2187;
+pub const EP_SIZE: usize = 181440;
+pub const CORNERS_SIZE: usize = CP_SIZE * CO_SIZE;
 
 #[derive(Debug, PartialEq)]
 pub struct Megaminx {
@@ -16,6 +17,10 @@ impl Megaminx {
             co: [0; 8],
             ep: [0, 1, 2, 3, 4, 5, 6, 7, 8],
         }
+    }
+
+    pub fn is_solved(&self) -> bool {
+        self == &Self::new()
     }
 
     pub fn u(&mut self) {
@@ -128,3 +133,60 @@ impl Megaminx {
 }
 
 fn main() {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_move_order() {
+        let mut minx = Megaminx::new();
+        for i in 0..5 {
+            minx.u();
+            assert_eq!(minx.is_solved(), i == 4);
+        }
+        for i in 0..5 {
+            minx.r();
+            assert_eq!(minx.is_solved(), i == 4);
+        }
+    }
+
+    #[test]
+    fn test_coords() {
+        let mut minx = Megaminx::new();
+
+        for i in 0..CORNERS_SIZE as u32 {
+            minx.set_corners_coord(i);
+            assert_eq!(minx.corners_coord(), i);
+        }
+
+        for i in 0..EP_SIZE as u32 {
+            minx.set_ep_coord(i);
+            assert_eq!(minx.ep_coord(), i);
+        }
+    }
+
+    #[test]
+    fn test_random_scramble() {
+        let scramble = "R2 U' R' U2' R' U R' U2' R' U R U2 R' U2' R U2' R U R2' U2' R' U2' R2 U2' \
+        R2' U R2 U' R2' U2 R' U R' U2' R U2' R2 U2 R2 U2' R U2' R' U2' R2' U R2 U2 R' U2'";
+
+        let mut minx = Megaminx::new();
+        minx.do_alg(scramble);
+
+        assert_eq!(
+            minx,
+            Megaminx {
+                cp: [6, 7, 0, 5, 2, 1, 4, 3],
+                co: [1, 2, 2, 0, 1, 2, 2, 2],
+                ep: [8, 0, 5, 4, 3, 7, 2, 6, 1],
+            }
+        );
+
+        let solution = "U' R' U R2 U' R U' R2' U' R' U2' R2' U' R' U2' R' U R2 U' R' U'";
+
+        minx.do_alg(solution);
+
+        assert_eq!(minx.is_solved(), true);
+    }
+}
