@@ -122,13 +122,13 @@ impl Megaminx {
         self.set_co_coord(coord % CO_SIZE as u32);
     }
 
-    pub fn encode(&self) -> u32 {
-        self.corners_coord() * EP_SIZE as u32 + self.ep_coord()
+    pub fn encode(&self) -> u64 {
+        self.corners_coord() as u64 * EP_SIZE as u64 + self.ep_coord() as u64
     }
 
-    pub fn decode(&mut self, coord: u32) {
-        self.set_corners_coord(coord / EP_SIZE as u32);
-        self.set_ep_coord(coord % EP_SIZE as u32);
+    pub fn decode(&mut self, coord: u64) {
+        self.set_corners_coord((coord / EP_SIZE as u64) as u32);
+        self.set_ep_coord((coord % EP_SIZE as u64) as u32);
     }
 }
 
