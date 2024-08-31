@@ -132,6 +132,127 @@ impl Megaminx {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub struct TranspositionTables {
+    u_corners: Vec<u32>,
+    u_edges: Vec<u32>,
+    r_corners: Vec<u32>,
+    r_edges: Vec<u32>,
+}
+
+impl TranspositionTables {
+    pub fn new() -> Self {
+        let mut u_corners = vec![0; CORNERS_SIZE];
+        let mut u_edges = vec![0; EP_SIZE];
+        let mut r_corners = vec![0; CORNERS_SIZE];
+        let mut r_edges = vec![0; EP_SIZE];
+
+        let mut minx = Megaminx::new();
+
+        for i in 0..CORNERS_SIZE {
+            minx.set_corners_coord(i as u32);
+            minx.u();
+            u_corners[i] = minx.corners_coord();
+            (0..4).for_each(|_| minx.u());
+            minx.r();
+            r_corners[i] = minx.corners_coord();
+        }
+
+        for i in 0..EP_SIZE {
+            minx.set_ep_coord(i as u32);
+            minx.u();
+            u_edges[i] = minx.ep_coord();
+            (0..4).for_each(|_| minx.u());
+            minx.r();
+            r_edges[i] = minx.ep_coord();
+        }
+
+        Self {
+            u_corners,
+            u_edges,
+            r_corners,
+            r_edges,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct CoordMinx<'a> {
+    corners: u32,
+    edges: u32,
+    transposition_tables: &'a TranspositionTables,
+}
+
+impl<'a> std::fmt::Debug for CoordMinx<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CoordMinx")
+            .field("corners", &self.corners)
+            .field("edges", &self.edges)
+            .finish()
+    }
+}
+
+impl<'a> CoordMinx<'a> {
+    pub fn new(transposition_tables: &'a TranspositionTables) -> Self {
+        let minx = Megaminx::new();
+        Self {
+            corners: minx.corners_coord(),
+            edges: minx.ep_coord(),
+            transposition_tables,
+        }
+    }
+
+    pub fn is_solved(&self) -> bool {
+        Megaminx::from(self).is_solved()
+    }
+
+    pub fn u(&mut self) {
+        self.corners = self.transposition_tables.u_corners[self.corners as usize];
+        self.edges = self.transposition_tables.u_edges[self.edges as usize];
+    }
+
+    pub fn r(&mut self) {
+        self.corners = self.transposition_tables.r_corners[self.corners as usize];
+        self.edges = self.transposition_tables.r_edges[self.edges as usize];
+    }
+
+    pub fn do_move(&mut self, mv: &str) {
+        match mv {
+            "U" => self.u(),
+            "U2" => (0..2).for_each(|_| self.u()),
+            "U2'" => (0..3).for_each(|_| self.u()),
+            "U'" => (0..4).for_each(|_| self.u()),
+            "R" => self.r(),
+            "R2" => (0..2).for_each(|_| self.r()),
+            "R2'" => (0..3).for_each(|_| self.r()),
+            "R'" => (0..4).for_each(|_| self.r()),
+            _ => panic!("Invalid move"),
+        }
+    }
+
+    pub fn do_alg(&mut self, alg: &str) {
+        alg.split_whitespace().for_each(|mv| self.do_move(mv));
+    }
+
+    pub fn encode(&self) -> u64 {
+        self.corners as u64 * EP_SIZE as u64 + self.edges as u64
+    }
+
+    pub fn decode(&mut self, coord: u64) {
+        self.corners = (coord / EP_SIZE as u64) as u32;
+        self.edges = (coord % EP_SIZE as u64) as u32;
+    }
+}
+
+impl From<&CoordMinx<'_>> for Megaminx {
+    fn from(value: &CoordMinx) -> Self {
+        let mut minx = Megaminx::new();
+        minx.set_corners_coord(value.corners);
+        minx.set_ep_coord(value.edges);
+        minx
+    }
+}
+
 fn main() {}
 
 #[cfg(test)]
@@ -186,6 +307,34 @@ mod tests {
         let solution = "U' R' U R2 U' R U' R2' U' R' U2' R2' U' R' U2' R' U R2 U' R' U'";
 
         minx.do_alg(solution);
+
+        assert_eq!(minx.is_solved(), true);
+    }
+
+    #[test]
+    fn test_random_scramble_2() {
+        let scramble = "R2 U' R' U2' R' U R' U2' R' U R U2 R' U2' R U2' R U R2' U2' R' U2' R2 U2' \
+        R2' U R2 U' R2' U2 R' U R' U2' R U2' R2 U2 R2 U2' R U2' R' U2' R2' U R2 U2 R' U2'";
+
+        let transposition_tables = TranspositionTables::new();
+        let mut minx = CoordMinx::new(&transposition_tables);
+        dbg!(&minx);
+        dbg!(Megaminx::from(&minx));
+        minx.do_alg(scramble);
+
+        assert_eq!(
+            Megaminx::from(&minx),
+            Megaminx {
+                cp: [6, 7, 0, 5, 2, 1, 4, 3],
+                co: [1, 2, 2, 0, 1, 2, 2, 2],
+                ep: [8, 0, 5, 4, 3, 7, 2, 6, 1],
+            }
+        );
+
+        let solution = "U' R' U R2 U' R U' R2' U' R' U2' R2' U' R' U2' R' U R2 U' R' U'";
+
+        minx.do_alg(solution);
+        dbg!(&minx);
 
         assert_eq!(minx.is_solved(), true);
     }
