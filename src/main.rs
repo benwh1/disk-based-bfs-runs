@@ -66,7 +66,7 @@ pub fn run() {
         ])
         .chunk_allocator(ChunkAlloc)
         .initial_memory_limit(1 << 34)
-        .update_files_compression_threshold(3 * (1 << 32))
+        .update_files_compression_threshold(1 << 32)
         .buf_io_capacity(1 << 23)
         .use_locked_io(true)
         .sync_filesystem(true)
