@@ -54,7 +54,7 @@ pub fn run() {
         .threads(48)
         // 42 * 48 chunks
         .chunk_size_bytes(496011600)
-        .update_memory(1 << 37)
+        .update_memory(120 * (1 << 30))
         .capacity_check_frequency(256)
         .initial_states(&[solved])
         .state_size(7999675084800)
