@@ -65,7 +65,7 @@ pub fn run() {
             PathBuf::from("/media/ben/drive4/bfs/megaminx-U-R/"),
         ])
         .chunk_allocator(ChunkAlloc)
-        .initial_memory_limit(1 << 28)
+        .initial_memory_limit(1 << 34)
         .update_files_compression_threshold(3 * (1 << 32))
         .buf_io_capacity(1 << 23)
         .use_locked_io(true)
