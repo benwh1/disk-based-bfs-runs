@@ -70,7 +70,7 @@ pub fn run() {
         .buf_io_capacity(1 << 23)
         .use_locked_io(true)
         .sync_filesystem(true)
-        .compress_update_files_from_depth(Some(19))
+        .compress_update_files_from_depth(Some(21))
         .build()
         .unwrap();
 
