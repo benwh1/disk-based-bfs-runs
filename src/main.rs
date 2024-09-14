@@ -61,7 +61,7 @@ pub fn run() {
         .init();
 
     let transposition_tables = TranspositionTables::new();
-    let solved = CoordMinx::new(&transposition_tables).encode() as u64;
+    let solved = CoordMinx::new(&transposition_tables).encode();
 
     let mut minx = CoordMinx::new(&transposition_tables);
     let settings = BfsSettingsBuilder::new()

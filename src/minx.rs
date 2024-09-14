@@ -106,7 +106,7 @@ impl Megaminx {
             total += self.co[i];
             coord /= 3;
         }
-        self.co[7] = (3 - total % 3) % 3 as u8;
+        self.co[7] = (3 - total % 3) % 3;
     }
 
     pub fn set_ep_coord(&mut self, coord: u32) {
