@@ -40,8 +40,12 @@ impl BfsSettingsProvider for SettingsProvider {
         }
     }
 
-    fn chunk_files_behavior(&self, _: usize) -> ChunkFilesBehavior {
-        ChunkFilesBehavior::Keep
+    fn chunk_files_behavior(&self, depth: usize) -> ChunkFilesBehavior {
+        if depth >= 15 {
+            ChunkFilesBehavior::Keep
+        } else {
+            ChunkFilesBehavior::Delete
+        }
     }
 }
 
