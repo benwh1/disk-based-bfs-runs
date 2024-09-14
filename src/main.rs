@@ -1,8 +1,10 @@
 use std::path::PathBuf;
 
 use disk_based_bfs::{
-    bfs::Bfs, callback::BfsCallback, chunk_allocator::ChunkAllocator, io::LockedIO,
-    settings::BfsSettingsBuilder,
+    bfs::Bfs,
+    callback::BfsCallback,
+    io::LockedIO,
+    settings::{BfsSettingsBuilder, BfsSettingsProvider, ChunkFilesBehavior, UpdateFilesBehavior},
 };
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, EnvFilter};
 
@@ -23,11 +25,23 @@ impl BfsCallback for Callback {
     fn end_of_chunk(&self, _: usize, _: usize) {}
 }
 
-struct ChunkAlloc;
+struct SettingsProvider;
 
-impl ChunkAllocator for ChunkAlloc {
+impl BfsSettingsProvider for SettingsProvider {
     fn chunk_root_idx(&self, chunk_idx: usize) -> usize {
         [0, 1, 2, 3, 1, 2, 3][chunk_idx % 7]
+    }
+
+    fn update_files_behavior(&self, depth: usize) -> UpdateFilesBehavior {
+        if (21..25).contains(&depth) {
+            UpdateFilesBehavior::CompressAndKeep
+        } else {
+            UpdateFilesBehavior::DontCompress
+        }
+    }
+
+    fn chunk_files_behavior(&self, _: usize) -> ChunkFilesBehavior {
+        ChunkFilesBehavior::Keep
     }
 }
 
@@ -55,6 +69,7 @@ pub fn run() {
         // 42 * 48 chunks
         .chunk_size_bytes(496011600)
         .update_memory(120 * (1 << 30))
+        .num_update_blocks(2 * 42 * 48 * 48)
         .capacity_check_frequency(256)
         .initial_states(&[solved])
         .state_size(7999675084800)
@@ -64,13 +79,14 @@ pub fn run() {
             PathBuf::from("/media/ben/drive3/bfs/megaminx-U-R/"),
             PathBuf::from("/media/ben/drive4/bfs/megaminx-U-R/"),
         ])
-        .chunk_allocator(ChunkAlloc)
         .initial_memory_limit(1 << 34)
-        .update_files_compression_threshold(1 << 32)
-        .buf_io_capacity(1 << 23)
+        .update_files_compression_threshold(5 * (1 << 30))
+        .update_array_threshold(196608)
         .use_locked_io(true)
         .sync_filesystem(true)
-        .compress_update_files_from_depth(Some(21))
+        .compute_checksums(true)
+        .compress_bit_arrays(true)
+        .settings_provider(SettingsProvider)
         .build()
         .unwrap();
 
