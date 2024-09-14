@@ -85,7 +85,7 @@ pub fn run() {
         ])
         .initial_memory_limit(1 << 34)
         .update_files_compression_threshold(5 * (1 << 30))
-        .update_array_threshold(196608)
+        .update_array_threshold(496011600)
         .use_locked_io(true)
         .sync_filesystem(true)
         .compute_checksums(true)
