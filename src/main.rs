@@ -72,7 +72,7 @@ pub fn run() {
         .threads(48)
         // 42 * 48 chunks
         .chunk_size_bytes(496011600)
-        .update_memory(120 * (1 << 30))
+        .update_memory(112 * (1 << 30))
         .num_update_blocks(2 * 42 * 48 * 48)
         .capacity_check_frequency(256)
         .initial_states(&[solved])
