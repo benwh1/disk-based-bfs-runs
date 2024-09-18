@@ -86,7 +86,7 @@ pub fn run() {
         .initial_memory_limit(1 << 34)
         .available_disk_space_limit(256 * (1 << 30))
         .update_array_threshold(496011600)
-        .use_locked_io(true)
+        .use_locked_io(false)
         .sync_filesystem(true)
         .compute_checksums(true)
         .compress_bit_arrays(true)
