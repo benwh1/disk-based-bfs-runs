@@ -84,7 +84,7 @@ pub fn run() {
             PathBuf::from("/media/ben/drive4/bfs/megaminx-U-R/"),
         ])
         .initial_memory_limit(1 << 34)
-        .available_disk_space_limit(1 << 39)
+        .available_disk_space_limit(256 * (1 << 30))
         .update_array_threshold(496011600)
         .use_locked_io(true)
         .sync_filesystem(true)
