@@ -1,6 +1,11 @@
 use std::path::PathBuf;
 
-use disk_based_bfs::{callback::BfsCallback, one_bit::BfsBuilder};
+use disk_based_bfs::{
+    bfs::Bfs,
+    callback::BfsCallback,
+    io::LockedIO,
+    settings::{BfsSettingsBuilder, BfsSettingsProvider, ChunkFilesBehavior, UpdateFilesBehavior},
+};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, EnvFilter};
 
 struct Cube {
@@ -209,6 +214,22 @@ impl BfsCallback for Callback {
     fn end_of_chunk(&self, _: usize, _: usize) {}
 }
 
+struct SettingsProvider;
+
+impl BfsSettingsProvider for SettingsProvider {
+    fn chunk_root_idx(&self, chunk_idx: usize) -> usize {
+        [0, 1, 2, 3, 1, 2, 3][chunk_idx % 7]
+    }
+
+    fn update_files_behavior(&self, _: usize) -> UpdateFilesBehavior {
+        UpdateFilesBehavior::CompressAndKeep
+    }
+
+    fn chunk_files_behavior(&self, _: usize) -> ChunkFilesBehavior {
+        ChunkFilesBehavior::Keep
+    }
+}
+
 fn main() {
     tracing_subscriber::registry()
         .with(
@@ -221,33 +242,56 @@ fn main() {
     let transposition_tables = TranspositionTables::new();
     let solved = CoordCube::new(&transposition_tables).encode();
 
-    let mut cube = CoordCube::new(&transposition_tables);
-    BfsBuilder::new()
-        .expander(move |enc, arr: &mut [_; 4]| {
-            cube.decode(enc);
-            cube.u();
-            arr[0] = cube.encode();
-            cube.u2();
-            arr[1] = cube.encode();
-            cube.ur();
-            arr[2] = cube.encode();
-            cube.r2();
-            arr[3] = cube.encode();
-        })
-        .callback(Callback)
-        .threads(36)
-        .chunk_size_bytes(274337280000 / 576)
-        .update_set_capacity(1 << 22)
+    let settings = BfsSettingsBuilder::new()
+        .threads(48)
+        // 12 * 48 chunks
+        .chunk_size_bytes(476280000)
+        .update_memory(112 * (1 << 30))
+        .num_update_blocks(2 * 12 * 48 * 48)
         .capacity_check_frequency(256)
         .initial_states(&[solved])
         .state_size(274337280000)
         .root_directories(&[
-            PathBuf::from("/media/ben/drive1/bfs/4x4-U-2R-qtm-run"),
-            PathBuf::from("/media/ben/Storage 2/bfs/4x4-U-2R-qtm-run"),
+            PathBuf::from("/media/ben/drive1/bfs/4x4-U-2R/"),
+            PathBuf::from("/media/ben/drive2/bfs/4x4-U-2R/"),
+            PathBuf::from("/media/ben/drive3/bfs/4x4-U-2R/"),
+            PathBuf::from("/media/ben/drive4/bfs/4x4-U-2R/"),
         ])
         .initial_memory_limit(1 << 32)
-        .update_files_compression_threshold(1 << 30)
+        .available_disk_space_limit(256 * (1 << 30))
+        .update_array_threshold(476280000)
+        .use_locked_io(false)
+        .sync_filesystem(true)
+        .compute_checksums(true)
+        .compress_bit_arrays(true)
+        .settings_provider(SettingsProvider)
         .build()
-        .unwrap()
-        .run();
+        .unwrap();
+
+    let mut cube = CoordCube::new(&transposition_tables);
+    let expander = move |enc, arr: &mut [_; 4]| {
+        cube.decode(enc);
+        cube.u();
+        arr[0] = cube.encode();
+        cube.u2();
+        arr[1] = cube.encode();
+        cube.ur();
+        arr[2] = cube.encode();
+        cube.r2();
+        arr[3] = cube.encode();
+    };
+    let callback = Callback;
+
+    let locked_io = LockedIO::new(
+        &settings,
+        vec![
+            PathBuf::from("/media/ben/drive1/bfs/4x4-U-2R/"),
+            PathBuf::from("/media/ben/drive2/bfs/4x4-U-2R/"),
+            PathBuf::from("/media/ben/drive3/bfs/4x4-U-2R/"),
+            PathBuf::from("/media/ben/drive4/bfs/4x4-U-2R/"),
+        ],
+    );
+
+    let bfs = Bfs::new(&settings, &locked_io, expander, callback);
+    bfs.run();
 }
