@@ -1,6 +1,11 @@
 use std::path::PathBuf;
 
-use disk_based_bfs::{bfs::Bfs, callback::BfsCallback, io::LockedIO, settings::BfsSettingsBuilder};
+use disk_based_bfs::{
+    bfs::Bfs,
+    callback::BfsCallback,
+    io::LockedIO,
+    settings::{BfsSettingsBuilder, BfsSettingsProvider, ChunkFilesBehavior, UpdateFilesBehavior},
+};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, EnvFilter};
 
 #[derive(Debug)]
@@ -537,6 +542,22 @@ impl BfsCallback for Callback {
     fn end_of_chunk(&self, _: usize, _: usize) {}
 }
 
+struct SettingsProvider;
+
+impl BfsSettingsProvider for SettingsProvider {
+    fn chunk_root_idx(&self, chunk_idx: usize) -> usize {
+        [0, 1, 2, 3, 1, 2, 3][chunk_idx % 7]
+    }
+
+    fn update_files_behavior(&self, _: usize) -> UpdateFilesBehavior {
+        UpdateFilesBehavior::CompressAndKeep
+    }
+
+    fn chunk_files_behavior(&self, _: usize) -> ChunkFilesBehavior {
+        ChunkFilesBehavior::Keep
+    }
+}
+
 pub fn main() {
     tracing_subscriber::registry()
         .with(
@@ -557,24 +578,28 @@ pub fn main() {
 
     let mut cube = CoordCube::new(&transposition_tables);
     let settings = BfsSettingsBuilder::new()
-        .threads(24)
+        .threads(48)
         // 48 chunks
         .chunk_size_bytes(303118200)
-        .update_memory(1 << 37)
+        .update_memory(112 * (1 << 30))
+        .num_update_blocks(2 * 48 * 48)
         .capacity_check_frequency(256)
         .initial_states(&[solved])
         .state_size(116397388800)
         .root_directories(&[
-            PathBuf::from("/media/ben/drive2/bfs/3x3-2-color-tennis-ball/"),
-            PathBuf::from("/media/ben/drive3/bfs/3x3-2-color-tennis-ball/"),
-            PathBuf::from("/media/ben/drive4/bfs/3x3-2-color-tennis-ball/"),
+            PathBuf::from("/media/ben/drive1/bfs/3x3-2-color-corners/"),
+            PathBuf::from("/media/ben/drive2/bfs/3x3-2-color-corners/"),
+            PathBuf::from("/media/ben/drive3/bfs/3x3-2-color-corners/"),
+            PathBuf::from("/media/ben/drive4/bfs/3x3-2-color-corners/"),
         ])
         .initial_memory_limit(1 << 28)
-        .update_files_compression_threshold(3 * (1 << 32))
-        .buf_io_capacity(1 << 23)
-        .use_locked_io(true)
+        .available_disk_space_limit(256 * (1 << 30))
+        .update_array_threshold(303118200)
+        .use_locked_io(false)
         .sync_filesystem(true)
-        .compress_update_files_at_end_of_iter(true)
+        .compute_checksums(true)
+        .compress_bit_arrays(true)
+        .settings_provider(SettingsProvider)
         .build()
         .unwrap();
 
@@ -627,6 +652,7 @@ pub fn main() {
     let locked_io = LockedIO::new(
         &settings,
         vec![
+            PathBuf::from("/media/ben/drive1/bfs/3x3-2-color-tennis-ball/"),
             PathBuf::from("/media/ben/drive2/bfs/3x3-2-color-tennis-ball/"),
             PathBuf::from("/media/ben/drive3/bfs/3x3-2-color-tennis-ball/"),
             PathBuf::from("/media/ben/drive4/bfs/3x3-2-color-tennis-ball/"),
