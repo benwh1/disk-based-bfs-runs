@@ -244,10 +244,10 @@ fn main() {
 
     let settings = BfsSettingsBuilder::new()
         .threads(48)
-        // 12 * 48 chunks
-        .chunk_size_bytes(476280000)
+        // 2 * 48 chunks
+        .chunk_size_bytes(357210000)
         .update_memory(112 * (1 << 30))
-        .num_update_blocks(2 * 12 * 48 * 48)
+        .num_update_blocks(2 * 2 * 48 * 48)
         .capacity_check_frequency(256)
         .initial_states(&[solved])
         .state_size(274337280000)
@@ -259,7 +259,7 @@ fn main() {
         ])
         .initial_memory_limit(1 << 32)
         .available_disk_space_limit(256 * (1 << 30))
-        .update_array_threshold(476280000)
+        .update_array_threshold(357210000)
         .use_locked_io(false)
         .sync_filesystem(false)
         .compute_checksums(true)
