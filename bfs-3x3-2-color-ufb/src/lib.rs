@@ -51,7 +51,7 @@ pub fn run() {
     tracing_subscriber::registry()
         .with(
             EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "disk_based_bfs=trace,bfs_3x3_2_color=trace".into()),
+                .unwrap_or_else(|_| "disk_based_bfs=trace,bfs_3x3_2_color_ufb=trace".into()),
         )
         .with(
             tracing_subscriber::fmt::layer()
