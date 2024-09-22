@@ -49,9 +49,15 @@ pub fn run() {
     tracing_subscriber::registry()
         .with(
             EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "disk_based_bfs=info,bfs_3x3_U_r=info".into()),
+                .unwrap_or_else(|_| "disk_based_bfs=trace,bfs_3x3_U_r=trace".into()),
         )
-        .with(tracing_subscriber::fmt::layer().compact().with_ansi(false))
+        .with(
+            tracing_subscriber::fmt::layer()
+                .compact()
+                .with_ansi(false)
+                .with_thread_names(true)
+                .with_line_number(true),
+        )
         .init();
 
     let transposition_tables = TranspositionTables::new();
