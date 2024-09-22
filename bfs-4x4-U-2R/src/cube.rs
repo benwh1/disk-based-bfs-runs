@@ -19,12 +19,6 @@ impl Cube {
         self.centers[0..4].rotate_right(1);
     }
 
-    pub fn uinv(&mut self) {
-        self.corners = (self.corners + 3) % 4;
-        self.edges[0..8].rotate_left(2);
-        self.centers[0..4].rotate_left(1);
-    }
-
     pub fn r(&mut self) {
         let x = self.edges[0];
         self.edges[0] = self.edges[8];
@@ -32,15 +26,6 @@ impl Cube {
         self.edges[9] = self.edges[5];
         self.edges[5] = x;
         self.centers[2..10].rotate_left(2);
-    }
-
-    pub fn rinv(&mut self) {
-        let x = self.edges[0];
-        self.edges[0] = self.edges[5];
-        self.edges[5] = self.edges[9];
-        self.edges[9] = self.edges[8];
-        self.edges[8] = x;
-        self.centers[2..10].rotate_right(2);
     }
 
     pub fn edge_coord(&self) -> u32 {

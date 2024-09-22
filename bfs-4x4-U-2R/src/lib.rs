@@ -45,7 +45,14 @@ impl BfsSettingsProvider for SettingsProvider {
     }
 }
 
-pub fn run() {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Metric {
+    Htm,
+    Qtm,
+    Utm,
+}
+
+pub fn run(metric: Metric) {
     tracing_subscriber::registry()
         .with(
             EnvFilter::try_from_default_env()
@@ -89,19 +96,6 @@ pub fn run() {
         .build()
         .unwrap();
 
-    let mut cube = CoordCube::new(&transposition_tables);
-    let expander = move |enc, arr: &mut [_; 4]| {
-        cube.decode(enc);
-        cube.u();
-        arr[0] = cube.encode();
-        cube.u2();
-        arr[1] = cube.encode();
-        cube.ur();
-        arr[2] = cube.encode();
-        cube.r2();
-        arr[3] = cube.encode();
-    };
-
     let callback = Callback;
 
     let locked_io = LockedIO::new(
@@ -114,6 +108,56 @@ pub fn run() {
         ],
     );
 
-    let bfs = Bfs::new(&settings, &locked_io, expander, callback);
-    bfs.run();
+    let mut cube = CoordCube::new(&transposition_tables);
+
+    match metric {
+        Metric::Htm => {
+            let expander = move |enc, arr: &mut [_; 6]| {
+                cube.decode(enc);
+                cube.u();
+                arr[0] = cube.encode();
+                cube.u();
+                arr[1] = cube.encode();
+                cube.u();
+                arr[2] = cube.encode();
+                cube.ur();
+                arr[3] = cube.encode();
+                cube.r();
+                arr[4] = cube.encode();
+                cube.r();
+                arr[5] = cube.encode();
+            };
+
+            let bfs = Bfs::new(&settings, &locked_io, expander, callback);
+            bfs.run();
+        }
+        Metric::Qtm => {
+            let expander = move |enc, arr: &mut [_; 4]| {
+                cube.decode(enc);
+                cube.u();
+                arr[0] = cube.encode();
+                cube.u2();
+                arr[1] = cube.encode();
+                cube.ur();
+                arr[2] = cube.encode();
+                cube.r2();
+                arr[3] = cube.encode();
+            };
+
+            let bfs = Bfs::new(&settings, &locked_io, expander, callback);
+            bfs.run();
+        }
+        Metric::Utm => {
+            let expander = move |enc, arr: &mut [_; 2]| {
+                cube.decode(enc);
+                cube.up();
+                arr[0] = cube.encode();
+                cube.urp();
+                arr[1] = cube.encode();
+            };
+
+            let bfs = Bfs::new(&settings, &locked_io, expander, callback);
+            bfs.run();
+        }
+    }
 }

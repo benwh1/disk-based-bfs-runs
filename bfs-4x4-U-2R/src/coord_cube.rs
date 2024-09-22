@@ -29,10 +29,28 @@ impl<'a> CoordCube<'a> {
             self.transposition_tables.u2_centers_corners[self.centers_corners as usize];
     }
 
+    pub fn up(&mut self) {
+        self.edges = self.transposition_tables.up_edges[self.edges as usize];
+        self.centers_corners =
+            self.transposition_tables.up_centers_corners[self.centers_corners as usize];
+    }
+
     pub fn ur(&mut self) {
         self.edges = self.transposition_tables.ur_edges[self.edges as usize];
         self.centers_corners =
             self.transposition_tables.ur_centers_corners[self.centers_corners as usize];
+    }
+
+    pub fn urp(&mut self) {
+        self.edges = self.transposition_tables.urp_edges[self.edges as usize];
+        self.centers_corners =
+            self.transposition_tables.urp_centers_corners[self.centers_corners as usize];
+    }
+
+    pub fn r(&mut self) {
+        self.edges = self.transposition_tables.r_edges[self.edges as usize];
+        self.centers_corners =
+            self.transposition_tables.r_centers_corners[self.centers_corners as usize];
     }
 
     pub fn r2(&mut self) {
