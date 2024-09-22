@@ -420,6 +420,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
 
 [[package]]
+name = "run"
+version = "0.1.0"
+dependencies = [
+ "bfs-3x3-2-color-ufb",
+ "bfs-3x3-2-color-ufr",
+ "bfs-3x3-U-F2-R",
+ "bfs-3x3-U-r",
+ "bfs-4x4-U-2R",
+ "bfs-megaminx-U-R",
+]
+
+[[package]]
 name = "rustix"
 version = "0.38.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"

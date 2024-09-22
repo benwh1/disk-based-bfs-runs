@@ -6,5 +6,6 @@ members = [
     "bfs-3x3-U-r",
     "bfs-4x4-U-2R",
     "bfs-megaminx-U-R",
+    "run",
 ]
 resolver = "2"
