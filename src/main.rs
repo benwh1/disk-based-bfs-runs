@@ -218,7 +218,7 @@ struct SettingsProvider;
 
 impl BfsSettingsProvider for SettingsProvider {
     fn chunk_root_idx(&self, chunk_idx: usize) -> usize {
-        [0, 1, 2, 3, 1, 2, 3][chunk_idx % 7]
+        chunk_idx % 4
     }
 
     fn update_files_behavior(&self, _: usize) -> UpdateFilesBehavior {
