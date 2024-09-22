@@ -16,18 +16,26 @@ use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _
 
 use crate::{coord_cube::CoordCube, transposition_tables::TranspositionTables};
 
-#[derive(Clone)]
-struct Callback;
+macro_rules! define_callback {
+    ($name:ident, $depth:expr) => {
+        #[derive(Clone)]
+        struct $name;
 
-impl BfsCallback for Callback {
-    fn new_state(&mut self, depth: usize, state: u64) {
-        if depth > 33 {
-            tracing::info!("depth {depth} state {state}");
+        impl BfsCallback for $name {
+            fn new_state(&mut self, depth: usize, state: u64) {
+                if depth > $depth {
+                    tracing::info!("depth {depth} state {state}");
+                }
+            }
+
+            fn end_of_chunk(&self, _: usize, _: usize) {}
         }
-    }
-
-    fn end_of_chunk(&self, _: usize, _: usize) {}
+    };
 }
+
+define_callback!(CallbackHtm, 26);
+define_callback!(CallbackQtm, 33);
+define_callback!(CallbackUtm, 47);
 
 struct SettingsProvider;
 
@@ -96,8 +104,6 @@ pub fn run(metric: Metric) {
         .build()
         .unwrap();
 
-    let callback = Callback;
-
     let locked_io = LockedIO::new(
         &settings,
         vec![
@@ -128,7 +134,7 @@ pub fn run(metric: Metric) {
                 arr[5] = cube.encode();
             };
 
-            let bfs = Bfs::new(&settings, &locked_io, expander, callback);
+            let bfs = Bfs::new(&settings, &locked_io, expander, CallbackHtm);
             bfs.run();
         }
         Metric::Qtm => {
@@ -144,7 +150,7 @@ pub fn run(metric: Metric) {
                 arr[3] = cube.encode();
             };
 
-            let bfs = Bfs::new(&settings, &locked_io, expander, callback);
+            let bfs = Bfs::new(&settings, &locked_io, expander, CallbackQtm);
             bfs.run();
         }
         Metric::Utm => {
@@ -156,7 +162,7 @@ pub fn run(metric: Metric) {
                 arr[1] = cube.encode();
             };
 
-            let bfs = Bfs::new(&settings, &locked_io, expander, callback);
+            let bfs = Bfs::new(&settings, &locked_io, expander, CallbackUtm);
             bfs.run();
         }
     }
