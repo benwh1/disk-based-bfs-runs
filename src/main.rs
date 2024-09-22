@@ -222,11 +222,11 @@ impl BfsSettingsProvider for SettingsProvider {
     }
 
     fn update_files_behavior(&self, _: usize) -> UpdateFilesBehavior {
-        UpdateFilesBehavior::CompressAndKeep
+        UpdateFilesBehavior::DontCompress
     }
 
     fn chunk_files_behavior(&self, _: usize) -> ChunkFilesBehavior {
-        ChunkFilesBehavior::Keep
+        ChunkFilesBehavior::Delete
     }
 }
 
