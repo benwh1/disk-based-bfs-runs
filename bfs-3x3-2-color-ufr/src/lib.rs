@@ -65,7 +65,6 @@ pub fn run() {
     let transposition_tables = TranspositionTables::new();
     let solved = CoordCube::new(&transposition_tables).encode() as u64;
 
-    let mut cube = CoordCube::new(&transposition_tables);
     let settings = BfsSettingsBuilder::new()
         .threads(48)
         // 8 * 48 chunks
@@ -92,6 +91,7 @@ pub fn run() {
         .build()
         .unwrap();
 
+    let mut cube = CoordCube::new(&transposition_tables);
     let expander = move |enc, arr: &mut [_; 18]| {
         cube.decode(enc);
         cube.u();
@@ -136,6 +136,7 @@ pub fn run() {
         cube.d();
         arr[17] = cube.encode();
     };
+
     let callback = Callback;
 
     let locked_io = LockedIO::new(

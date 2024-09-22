@@ -105,6 +105,7 @@ pub fn run() {
         cube.rw();
         arr[5] = cube.encode();
     };
+
     let callback = Callback;
 
     let locked_io = LockedIO::new(
