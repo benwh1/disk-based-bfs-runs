@@ -587,10 +587,10 @@ pub fn main() {
         .initial_states(&[solved])
         .state_size(116397388800)
         .root_directories(&[
-            PathBuf::from("/media/ben/drive1/bfs/3x3-2-color-corners/"),
-            PathBuf::from("/media/ben/drive2/bfs/3x3-2-color-corners/"),
-            PathBuf::from("/media/ben/drive3/bfs/3x3-2-color-corners/"),
-            PathBuf::from("/media/ben/drive4/bfs/3x3-2-color-corners/"),
+            PathBuf::from("/media/ben/drive1/bfs/3x3-2-color-tennis-ball/"),
+            PathBuf::from("/media/ben/drive2/bfs/3x3-2-color-tennis-ball/"),
+            PathBuf::from("/media/ben/drive3/bfs/3x3-2-color-tennis-ball/"),
+            PathBuf::from("/media/ben/drive4/bfs/3x3-2-color-tennis-ball/"),
         ])
         .initial_memory_limit(1 << 28)
         .available_disk_space_limit(256 * (1 << 30))
