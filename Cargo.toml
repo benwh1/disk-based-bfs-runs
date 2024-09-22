@@ -1,10 +1,10 @@
-[package]
-name = "disk-based-bfs-runs"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-combinatorics = { path = "../combinatorics" }
-disk-based-bfs = { path = "../disk-based-bfs" }
-tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+[workspace]
+members = [
+    "bfs-3x3-2-color-ufb",
+    "bfs-3x3-2-color-ufr",
+    "bfs-3x3-U-F2-R",
+    "bfs-3x3-U-r",
+    "bfs-4x4-U-2R",
+    "bfs-megaminx-U-R",
+]
+resolver = "2"

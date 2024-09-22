@@ -1,0 +1,10 @@
+[package]
+name = "bfs-3x3-2-color-ufb"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+combinatorics = { path = "../../combinatorics" }
+disk-based-bfs = { path = "../../disk-based-bfs" }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
