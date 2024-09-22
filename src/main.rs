@@ -261,7 +261,7 @@ fn main() {
         .available_disk_space_limit(256 * (1 << 30))
         .update_array_threshold(476280000)
         .use_locked_io(false)
-        .sync_filesystem(true)
+        .sync_filesystem(false)
         .compute_checksums(true)
         .compress_bit_arrays(true)
         .settings_provider(SettingsProvider)
