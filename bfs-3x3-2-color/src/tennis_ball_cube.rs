@@ -1,0 +1,1146 @@
+use std::path::PathBuf;
+
+use disk_based_bfs::{
+    bfs::Bfs,
+    callback::BfsCallback,
+    io::LockedIO,
+    settings::{BfsSettingsBuilder, BfsSettingsProvider, ChunkFilesBehavior, UpdateFilesBehavior},
+};
+use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, EnvFilter};
+
+#[derive(Debug)]
+struct Cube {
+    ep: [u8; 12],
+    eo: [u8; 12],
+    cp: [u8; 8],
+    co: [u8; 8],
+}
+
+impl Cube {
+    fn new() -> Self {
+        Self {
+            ep: [0, 1, 0, 1, 1, 1, 1, 1, 1, 2, 1, 2],
+            eo: [0; 12],
+            cp: [0, 0, 0, 0, 1, 1, 1, 1],
+            co: [0; 8],
+        }
+    }
+
+    fn is_solved(&self) -> bool {
+        if !(self.ep == [0, 1, 0, 1, 1, 1, 1, 1, 1, 2, 1, 2]
+            && self.cp == [0, 0, 0, 0, 1, 1, 1, 1]
+            && self.co == [0; 8])
+        {
+            return false;
+        }
+
+        for i in [1, 3, 4, 5, 6, 7, 8, 10] {
+            if self.eo[i] != 0 {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn u(&mut self) {
+        let a = self.ep[0];
+        self.ep[0] = self.ep[3];
+        self.ep[3] = self.ep[2];
+        self.ep[2] = self.ep[1];
+        self.ep[1] = a;
+        let a = self.eo[0];
+        self.eo[0] = self.eo[3];
+        self.eo[3] = self.eo[2];
+        self.eo[2] = self.eo[1];
+        self.eo[1] = a;
+        let a = self.cp[0];
+        self.cp[0] = self.cp[3];
+        self.cp[3] = self.cp[2];
+        self.cp[2] = self.cp[1];
+        self.cp[1] = a;
+        let a = self.co[0];
+        self.co[0] = (self.co[3] + 2) % 3;
+        self.co[3] = (self.co[2] + 1) % 3;
+        self.co[2] = (self.co[1] + 2) % 3;
+        self.co[1] = (a + 1) % 3;
+    }
+
+    fn x(&mut self) {
+        let a = self.ep[0];
+        self.ep[0] = self.ep[10];
+        self.ep[10] = self.ep[8];
+        self.ep[8] = self.ep[2];
+        self.ep[2] = a;
+        let a = self.ep[1];
+        self.ep[1] = self.ep[4];
+        self.ep[4] = self.ep[9];
+        self.ep[9] = self.ep[5];
+        self.ep[5] = a;
+        let a = self.ep[3];
+        self.ep[3] = self.ep[7];
+        self.ep[7] = self.ep[11];
+        self.ep[11] = self.ep[6];
+        self.ep[6] = a;
+
+        let a = self.eo[0];
+        self.eo[0] = self.eo[10];
+        self.eo[10] = (self.eo[8] + 1) % 2;
+        self.eo[8] = self.eo[2];
+        self.eo[2] = (a + 1) % 2;
+        let a = self.eo[1];
+        self.eo[1] = self.eo[4];
+        self.eo[4] = self.eo[9];
+        self.eo[9] = self.eo[5];
+        self.eo[5] = a;
+        let a = self.eo[3];
+        self.eo[3] = self.eo[7];
+        self.eo[7] = self.eo[11];
+        self.eo[11] = self.eo[6];
+        self.eo[6] = a;
+
+        let a = self.cp[0];
+        self.cp[0] = self.cp[5];
+        self.cp[5] = self.cp[4];
+        self.cp[4] = self.cp[1];
+        self.cp[1] = a;
+        let a = self.cp[2];
+        self.cp[2] = self.cp[3];
+        self.cp[3] = self.cp[6];
+        self.cp[6] = self.cp[7];
+        self.cp[7] = a;
+
+        let a = self.co[0];
+        self.co[0] = (self.co[5] + 1) % 3;
+        self.co[5] = (self.co[4] + 1) % 3;
+        self.co[4] = (self.co[1] + 1) % 3;
+        self.co[1] = a;
+        let a = self.co[2];
+        self.co[2] = self.co[3];
+        self.co[3] = (self.co[6] + 2) % 3;
+        self.co[6] = (self.co[7] + 2) % 3;
+        self.co[7] = (a + 2) % 3;
+    }
+
+    fn y(&mut self) {
+        let a = self.ep[0];
+        self.ep[0] = self.ep[3];
+        self.ep[3] = self.ep[2];
+        self.ep[2] = self.ep[1];
+        self.ep[1] = a;
+        let a = self.ep[4];
+        self.ep[4] = self.ep[7];
+        self.ep[7] = self.ep[6];
+        self.ep[6] = self.ep[5];
+        self.ep[5] = a;
+        let a = self.ep[8];
+        self.ep[8] = self.ep[9];
+        self.ep[9] = self.ep[10];
+        self.ep[10] = self.ep[11];
+        self.ep[11] = a;
+
+        let a = self.eo[0];
+        self.eo[0] = self.eo[3];
+        self.eo[3] = self.eo[2];
+        self.eo[2] = self.eo[1];
+        self.eo[1] = a;
+        let a = self.eo[4];
+        self.eo[4] = (self.eo[7] + 1) % 2;
+        self.eo[7] = (self.eo[6] + 1) % 2;
+        self.eo[6] = (self.eo[5] + 1) % 2;
+        self.eo[5] = (a + 1) % 2;
+        let a = self.eo[8];
+        self.eo[8] = (self.eo[9] + 1) % 2;
+        self.eo[9] = (self.eo[10] + 1) % 2;
+        self.eo[10] = (self.eo[11] + 1) % 2;
+        self.eo[11] = (a + 1) % 2;
+
+        let a = self.cp[0];
+        self.cp[0] = self.cp[3];
+        self.cp[3] = self.cp[2];
+        self.cp[2] = self.cp[1];
+        self.cp[1] = a;
+        let a = self.cp[4];
+        self.cp[4] = self.cp[5];
+        self.cp[5] = self.cp[6];
+        self.cp[6] = self.cp[7];
+        self.cp[7] = a;
+
+        let a = self.co[0];
+        self.co[0] = (self.co[3] + 2) % 3;
+        self.co[3] = (self.co[2] + 1) % 3;
+        self.co[2] = (self.co[1] + 2) % 3;
+        self.co[1] = (a + 1) % 3;
+        let a = self.co[4];
+        self.co[4] = (self.co[5] + 1) % 3;
+        self.co[5] = (self.co[6] + 2) % 3;
+        self.co[6] = (self.co[7] + 1) % 3;
+        self.co[7] = (a + 2) % 3;
+    }
+
+    fn z(&mut self) {
+        self.x();
+        self.y();
+        self.x();
+        self.x();
+        self.x();
+    }
+
+    fn xp(&mut self) {
+        self.x();
+        self.x();
+        self.x();
+    }
+
+    fn yp(&mut self) {
+        self.y();
+        self.y();
+        self.y();
+    }
+
+    fn zp(&mut self) {
+        self.z();
+        self.z();
+        self.z();
+    }
+
+    fn l(&mut self) {
+        self.z();
+        self.u();
+        self.zp();
+    }
+
+    fn f(&mut self) {
+        self.x();
+        self.u();
+        self.xp();
+    }
+
+    fn r(&mut self) {
+        self.zp();
+        self.u();
+        self.z();
+    }
+
+    fn b(&mut self) {
+        self.xp();
+        self.u();
+        self.x();
+    }
+
+    fn d(&mut self) {
+        self.x();
+        self.x();
+        self.u();
+        self.x();
+        self.x();
+    }
+
+    fn up(&mut self) {
+        self.u();
+        self.u();
+        self.u();
+    }
+
+    fn lp(&mut self) {
+        self.l();
+        self.l();
+        self.l();
+    }
+
+    fn fp(&mut self) {
+        self.f();
+        self.f();
+        self.f();
+    }
+
+    fn rp(&mut self) {
+        self.r();
+        self.r();
+        self.r();
+    }
+
+    fn bp(&mut self) {
+        self.b();
+        self.b();
+        self.b();
+    }
+
+    fn dp(&mut self) {
+        self.d();
+        self.d();
+        self.d();
+    }
+
+    fn ep_coord(&self) -> u32 {
+        combinatorics::indexing::encode_multiset(self.ep, [2, 8, 2]) as u32
+    }
+
+    /// Depends on `self.ep`
+    fn eo_coord(&self) -> u32 {
+        let mut coord = 0;
+        for i in 0..12 {
+            if self.ep[i] == 1 {
+                coord *= 2;
+                coord += self.eo[i] as u32;
+            }
+        }
+        coord
+    }
+
+    fn cp_coord(&self) -> u32 {
+        combinatorics::indexing::encode_multiset(self.cp, [4, 4]) as u32
+    }
+
+    fn co_coord(&self) -> u32 {
+        let mut coord = 0;
+        for i in 0..7 {
+            coord *= 3;
+            coord += self.co[i] as u32;
+        }
+        coord
+    }
+
+    fn set_ep_coord(&mut self, coord: u32) {
+        self.ep = combinatorics::indexing::decode_multiset(coord as u128, [2, 8, 2]);
+    }
+
+    /// Depends on `self.ep`
+    fn set_eo_coord(&mut self, mut coord: u32) {
+        for i in (0..12).rev() {
+            if self.ep[i] == 1 {
+                self.eo[i] = (coord % 2) as u8;
+                coord /= 2;
+            }
+        }
+    }
+
+    fn set_cp_coord(&mut self, coord: u32) {
+        self.cp = combinatorics::indexing::decode_multiset(coord as u128, [4, 4]);
+    }
+
+    fn set_co_coord(&mut self, mut coord: u32) {
+        let mut total = 0;
+        for i in (0..7).rev() {
+            let x = (coord % 3) as u8;
+            total = (total + x) % 3;
+            self.co[i] = x;
+            coord /= 3;
+        }
+        self.co[7] = (3 - total) % 3;
+    }
+
+    fn edges_coord(&self) -> u32 {
+        self.ep_coord() * 256 + self.eo_coord()
+    }
+
+    fn corners_coord(&self) -> u32 {
+        self.cp_coord() * 2187 + self.co_coord()
+    }
+
+    fn set_edges_coord(&mut self, coord: u32) {
+        // Must set EP before EO
+        self.set_ep_coord(coord / 256);
+        self.set_eo_coord(coord % 256);
+    }
+
+    fn set_corners_coord(&mut self, coord: u32) {
+        self.set_cp_coord(coord / 2187);
+        self.set_co_coord(coord % 2187);
+    }
+
+    fn encode(&self) -> u64 {
+        self.edges_coord() as u64 * TranspositionTables::CORNERS_SIZE as u64
+            + self.corners_coord() as u64
+    }
+
+    fn decode(&mut self, coord: u64) {
+        self.set_edges_coord((coord / TranspositionTables::CORNERS_SIZE as u64) as u32);
+        self.set_corners_coord((coord % TranspositionTables::CORNERS_SIZE as u64) as u32);
+    }
+}
+
+struct TranspositionTables {
+    u_edges: Vec<u32>,
+    u_corners: Vec<u32>,
+    l_edges: Vec<u32>,
+    l_corners: Vec<u32>,
+    f_edges: Vec<u32>,
+    f_corners: Vec<u32>,
+    r_edges: Vec<u32>,
+    r_corners: Vec<u32>,
+    b_edges: Vec<u32>,
+    b_corners: Vec<u32>,
+    d_edges: Vec<u32>,
+    d_corners: Vec<u32>,
+}
+
+impl TranspositionTables {
+    const EDGES_SIZE: usize = 760320;
+    const CORNERS_SIZE: usize = 153090;
+
+    pub fn new() -> Self {
+        let mut u_edges = vec![0; Self::EDGES_SIZE];
+        let mut u_corners = vec![0; Self::CORNERS_SIZE];
+        let mut l_edges = vec![0; Self::EDGES_SIZE];
+        let mut l_corners = vec![0; Self::CORNERS_SIZE];
+        let mut f_edges = vec![0; Self::EDGES_SIZE];
+        let mut f_corners = vec![0; Self::CORNERS_SIZE];
+        let mut r_edges = vec![0; Self::EDGES_SIZE];
+        let mut r_corners = vec![0; Self::CORNERS_SIZE];
+        let mut b_edges = vec![0; Self::EDGES_SIZE];
+        let mut b_corners = vec![0; Self::CORNERS_SIZE];
+        let mut d_edges = vec![0; Self::EDGES_SIZE];
+        let mut d_corners = vec![0; Self::CORNERS_SIZE];
+
+        let mut cube = Cube::new();
+
+        for i in 0..Self::EDGES_SIZE {
+            cube.set_edges_coord(i as u32);
+            cube.u();
+            u_edges[i] = cube.edges_coord();
+            cube.up();
+            cube.l();
+            l_edges[i] = cube.edges_coord();
+            cube.lp();
+            cube.f();
+            f_edges[i] = cube.edges_coord();
+            cube.fp();
+            cube.r();
+            r_edges[i] = cube.edges_coord();
+            cube.rp();
+            cube.b();
+            b_edges[i] = cube.edges_coord();
+            cube.bp();
+            cube.d();
+            d_edges[i] = cube.edges_coord();
+        }
+
+        for i in 0..Self::CORNERS_SIZE {
+            cube.set_corners_coord(i as u32);
+            cube.u();
+            u_corners[i] = cube.corners_coord();
+            cube.up();
+            cube.l();
+            l_corners[i] = cube.corners_coord();
+            cube.lp();
+            cube.f();
+            f_corners[i] = cube.corners_coord();
+            cube.fp();
+            cube.r();
+            r_corners[i] = cube.corners_coord();
+            cube.rp();
+            cube.b();
+            b_corners[i] = cube.corners_coord();
+            cube.bp();
+            cube.d();
+            d_corners[i] = cube.corners_coord();
+        }
+
+        Self {
+            u_edges,
+            u_corners,
+            l_edges,
+            l_corners,
+            f_edges,
+            f_corners,
+            r_edges,
+            r_corners,
+            b_edges,
+            b_corners,
+            d_edges,
+            d_corners,
+        }
+    }
+}
+
+#[derive(Clone)]
+struct CoordCube<'a> {
+    edges: u32,
+    corners: u32,
+    transposition_tables: &'a TranspositionTables,
+}
+
+impl<'a> std::fmt::Debug for CoordCube<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CoordCube")
+            .field("edges", &self.edges)
+            .field("corners", &self.corners)
+            .finish()
+    }
+}
+
+impl<'a> CoordCube<'a> {
+    pub fn new(transposition_tables: &'a TranspositionTables) -> Self {
+        let cube = Cube::new();
+        Self {
+            edges: cube.edges_coord(),
+            corners: cube.corners_coord(),
+            transposition_tables,
+        }
+    }
+
+    pub fn u(&mut self) {
+        self.edges = self.transposition_tables.u_edges[self.edges as usize];
+        self.corners = self.transposition_tables.u_corners[self.corners as usize];
+    }
+
+    pub fn l(&mut self) {
+        self.edges = self.transposition_tables.l_edges[self.edges as usize];
+        self.corners = self.transposition_tables.l_corners[self.corners as usize];
+    }
+
+    pub fn f(&mut self) {
+        self.edges = self.transposition_tables.f_edges[self.edges as usize];
+        self.corners = self.transposition_tables.f_corners[self.corners as usize];
+    }
+
+    pub fn r(&mut self) {
+        self.edges = self.transposition_tables.r_edges[self.edges as usize];
+        self.corners = self.transposition_tables.r_corners[self.corners as usize];
+    }
+
+    pub fn b(&mut self) {
+        self.edges = self.transposition_tables.b_edges[self.edges as usize];
+        self.corners = self.transposition_tables.b_corners[self.corners as usize];
+    }
+
+    pub fn d(&mut self) {
+        self.edges = self.transposition_tables.d_edges[self.edges as usize];
+        self.corners = self.transposition_tables.d_corners[self.corners as usize];
+    }
+
+    pub fn encode(&self) -> u64 {
+        self.edges as u64 * TranspositionTables::CORNERS_SIZE as u64 + self.corners as u64
+    }
+
+    pub fn decode(&mut self, coord: u64) {
+        self.edges = (coord / TranspositionTables::CORNERS_SIZE as u64) as u32;
+        self.corners = (coord % TranspositionTables::CORNERS_SIZE as u64) as u32;
+    }
+}
+
+impl From<CoordCube<'_>> for Cube {
+    fn from(value: CoordCube<'_>) -> Self {
+        let mut cube = Cube::new();
+        cube.set_edges_coord(value.edges as u32);
+        cube.set_corners_coord(value.corners as u32);
+        cube
+    }
+}
+
+#[derive(Clone)]
+struct Callback;
+
+impl BfsCallback for Callback {
+    fn new_state(&mut self, depth: usize, state: u64) {
+        if depth > 12 {
+            tracing::info!("depth {depth} state {state}");
+        }
+    }
+
+    fn end_of_chunk(&self, _: usize, _: usize) {}
+}
+
+struct SettingsProvider;
+
+impl BfsSettingsProvider for SettingsProvider {
+    fn chunk_root_idx(&self, chunk_idx: usize) -> usize {
+        [0, 1, 2, 3, 1, 2, 3][chunk_idx % 7]
+    }
+
+    fn update_files_behavior(&self, _: usize) -> UpdateFilesBehavior {
+        UpdateFilesBehavior::CompressAndKeep
+    }
+
+    fn chunk_files_behavior(&self, depth: usize) -> ChunkFilesBehavior {
+        if depth > 6 {
+            ChunkFilesBehavior::Keep
+        } else {
+            ChunkFilesBehavior::Delete
+        }
+    }
+}
+
+pub fn main() {
+    tracing_subscriber::registry()
+        .with(
+            EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "disk_based_bfs=trace,bfs_3x3_2_color=trace".into()),
+        )
+        .with(
+            tracing_subscriber::fmt::layer()
+                .compact()
+                .with_ansi(false)
+                .with_thread_names(true)
+                .with_line_number(true),
+        )
+        .init();
+
+    let transposition_tables = TranspositionTables::new();
+    let solved = CoordCube::new(&transposition_tables).encode() as u64;
+
+    let mut cube = CoordCube::new(&transposition_tables);
+    let settings = BfsSettingsBuilder::new()
+        .threads(48)
+        // 48 chunks
+        .chunk_size_bytes(303118200)
+        .update_memory(112 * (1 << 30))
+        .num_update_blocks(2 * 48 * 48)
+        .capacity_check_frequency(256)
+        .initial_states(&[solved])
+        .state_size(116397388800)
+        .root_directories(&[
+            PathBuf::from("/media/ben/drive1/bfs/3x3-2-color-tennis-ball/"),
+            PathBuf::from("/media/ben/drive2/bfs/3x3-2-color-tennis-ball/"),
+            PathBuf::from("/media/ben/drive3/bfs/3x3-2-color-tennis-ball/"),
+            PathBuf::from("/media/ben/drive4/bfs/3x3-2-color-tennis-ball/"),
+        ])
+        .initial_memory_limit(1 << 28)
+        .available_disk_space_limit(256 * (1 << 30))
+        .update_array_threshold(303118200)
+        .use_locked_io(false)
+        .sync_filesystem(true)
+        .compute_checksums(true)
+        .compress_bit_arrays(true)
+        .settings_provider(SettingsProvider)
+        .build()
+        .unwrap();
+
+    let expander = move |enc, arr: &mut [_; 18]| {
+        cube.decode(enc);
+        cube.u();
+        arr[0] = cube.encode() as u64;
+        cube.u();
+        arr[1] = cube.encode();
+        cube.u();
+        arr[2] = cube.encode();
+        cube.u();
+        cube.l();
+        arr[3] = cube.encode();
+        cube.l();
+        arr[4] = cube.encode();
+        cube.l();
+        arr[5] = cube.encode();
+        cube.l();
+        cube.f();
+        arr[6] = cube.encode();
+        cube.f();
+        arr[7] = cube.encode();
+        cube.f();
+        arr[8] = cube.encode();
+        cube.f();
+        cube.r();
+        arr[9] = cube.encode();
+        cube.r();
+        arr[10] = cube.encode();
+        cube.r();
+        arr[11] = cube.encode();
+        cube.r();
+        cube.b();
+        arr[12] = cube.encode();
+        cube.b();
+        arr[13] = cube.encode();
+        cube.b();
+        arr[14] = cube.encode();
+        cube.b();
+        cube.d();
+        arr[15] = cube.encode();
+        cube.d();
+        arr[16] = cube.encode();
+        cube.d();
+        arr[17] = cube.encode();
+    };
+    let callback = Callback;
+
+    let locked_io = LockedIO::new(
+        &settings,
+        vec![
+            PathBuf::from("/media/ben/drive1/bfs/3x3-2-color-tennis-ball/"),
+            PathBuf::from("/media/ben/drive2/bfs/3x3-2-color-tennis-ball/"),
+            PathBuf::from("/media/ben/drive3/bfs/3x3-2-color-tennis-ball/"),
+            PathBuf::from("/media/ben/drive4/bfs/3x3-2-color-tennis-ball/"),
+        ],
+    );
+
+    let bfs = Bfs::new(&settings, &locked_io, expander, callback);
+    bfs.run();
+}
+
+pub fn decode_depth_13_positions() {
+    let depth_13s = [
+        2116315323,
+        2522922380,
+        2522922385,
+        4820477267,
+        4873660381,
+        4874007872,
+        4874233862,
+        17008777976,
+        20320535930,
+        23205931943,
+        23230396276,
+        23240285897,
+        24736747152,
+        24737978418,
+        24739192281,
+        24846986109,
+        26032495388,
+        26032496468,
+        26032496585,
+        26032496598,
+        26032496603,
+        26419528269,
+        26936471214,
+        37358709197,
+        37760533421,
+        38725555136,
+        38740283163,
+        38759937748,
+        38974938728,
+        40023779756,
+        41111379113,
+        41552224376,
+        41560730393,
+        41561945636,
+        42600139137,
+        56131228305,
+        58707628146,
+        58796242002,
+        61049763014,
+        61706285105,
+        72596385290,
+        72598814724,
+        72601249100,
+        75187182168,
+        82937668822,
+        90696547760,
+        105551116763,
+        105551146220,
+        105551175798,
+        105551208601,
+        105551237399,
+        113535656912,
+        113536136372,
+        113536410287,
+        113741635954,
+        113741685188,
+        113764239985,
+        113766076904,
+        113767914848,
+        113769751220,
+        113771588137,
+        113771588299,
+        113771588306,
+        113771588840,
+        113771588845,
+        113771588846,
+        113771589001,
+        113888394626,
+        114006734384,
+        114006735248,
+        115298989104,
+        115299885830,
+        115299918932,
+    ];
+
+    for (i, &pos) in depth_13s.iter().enumerate() {
+        let mut cube = Cube::new();
+        cube.decode(pos);
+
+        let mut s = format!("MaxSolutions 1\nScramble s{i}\ncorners\n");
+        for i in 0..8 {
+            s.push_str(&format!("{} ", cube.cp[i] + 1));
+        }
+        s.pop();
+        s.push('\n');
+        for i in 0..8 {
+            s.push_str(&format!("{} ", cube.co[i]));
+        }
+        s.pop();
+        s.push('\n');
+        s.push_str("edges\n");
+        for i in 0..12 {
+            s.push_str(&format!("{} ", cube.ep[i] + 1));
+        }
+        s.pop();
+        s.push('\n');
+        if cube.eo.iter().sum::<u8>() % 2 == 0 {
+            let a = cube.ep.iter().position(|&x| x == 0).unwrap();
+            cube.eo[a] = 1 - cube.eo[a];
+        }
+        for i in 0..12 {
+            s.push_str(&format!("{} ", cube.eo[i]));
+        }
+        s.pop();
+        s.push_str("\nEnd\n");
+        println!("{s}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cube() {
+        let mut cube = Cube::new();
+        cube.u();
+        assert!(!cube.is_solved());
+        cube.u();
+        assert!(cube.is_solved());
+        cube.d();
+        assert!(!cube.is_solved());
+        cube.d();
+        assert!(cube.is_solved());
+        cube.l();
+        assert!(!cube.is_solved());
+        cube.l();
+        assert!(!cube.is_solved());
+        cube.l();
+        assert!(!cube.is_solved());
+        cube.l();
+        assert!(cube.is_solved());
+
+        // R U R' U' R' F R2 U' R' U' R U R' F'
+        for _ in 0..2 {
+            cube.r();
+            cube.u();
+            cube.rp();
+            cube.up();
+            cube.rp();
+            cube.f();
+            cube.r();
+            cube.r();
+            cube.up();
+            cube.rp();
+            cube.up();
+            cube.r();
+            cube.u();
+            cube.rp();
+            cube.fp();
+        }
+        assert!(cube.is_solved());
+    }
+
+    #[test]
+    fn test_moves_order() {
+        let mut cube = Cube::new();
+        for i in 0..4 {
+            cube.u();
+            assert_eq!(cube.is_solved(), i == 1 || i == 3);
+        }
+        for i in 0..4 {
+            cube.x();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.y();
+            assert_eq!(cube.is_solved(), i == 1 || i == 3);
+        }
+        for i in 0..4 {
+            cube.l();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.f();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.r();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.b();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+        for i in 0..4 {
+            cube.d();
+            assert_eq!(cube.is_solved(), i == 1 || i == 3);
+        }
+        for i in 0..4 {
+            cube.z();
+            assert_eq!(cube.is_solved(), i == 3);
+        }
+    }
+
+    #[test]
+    fn test_eo() {
+        let mut cube = Cube::new();
+        cube.u();
+        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        cube.up();
+        cube.l();
+        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        cube.lp();
+        cube.f();
+        assert_eq!(cube.eo, [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]);
+        cube.fp();
+        cube.r();
+        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        cube.rp();
+        cube.b();
+        assert_eq!(cube.eo, [0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0]);
+        cube.bp();
+        cube.d();
+        assert_eq!(cube.eo, [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1]);
+    }
+
+    #[test]
+    fn test_eo_coord() {
+        let mut cube = Cube::new();
+        let eo = cube.eo_coord();
+
+        // Flip the 4 edges that don't have orientation, and check eo coord
+        // R D R2 B' L2 U R' L' U' L2 F R2 D' L
+        cube.r();
+        cube.d();
+        cube.r();
+        cube.r();
+        cube.bp();
+        cube.l();
+        cube.l();
+        cube.u();
+        cube.rp();
+        cube.lp();
+        cube.up();
+        cube.l();
+        cube.l();
+        cube.f();
+        cube.r();
+        cube.r();
+        cube.dp();
+        cube.l();
+
+        assert_eq!(cube.eo_coord(), eo);
+    }
+
+    #[test]
+    fn test_random_scramble() {
+        let mut cube = Cube::new();
+
+        // Scramble: D F2 R' U2 F L U2 F U F D2 R B2 L' F2 U2 D2 L' D2 L2 F2
+        cube.d();
+        cube.f();
+        cube.f();
+        cube.rp();
+        cube.u();
+        cube.u();
+        cube.f();
+        cube.l();
+        cube.u();
+        cube.u();
+        cube.f();
+        cube.u();
+        cube.f();
+        cube.d();
+        cube.d();
+        cube.r();
+        cube.b();
+        cube.b();
+        cube.lp();
+        cube.f();
+        cube.f();
+        cube.u();
+        cube.u();
+        cube.d();
+        cube.d();
+        cube.lp();
+        cube.d();
+        cube.d();
+        cube.l();
+        cube.l();
+        cube.f();
+        cube.f();
+
+        // Solution: D2 R L2 F U' F2 U2 F D R2 F'
+        cube.d();
+        cube.d();
+        cube.r();
+        cube.l();
+        cube.l();
+        cube.f();
+        cube.up();
+        cube.f();
+        cube.f();
+        cube.u();
+        cube.u();
+        cube.f();
+        cube.d();
+        cube.r();
+        cube.r();
+        cube.fp();
+
+        assert!(cube.is_solved());
+    }
+
+    #[test]
+    fn test_edges_coord() {
+        let mut cube = Cube::new();
+        for i in 0..TranspositionTables::EDGES_SIZE {
+            cube.set_edges_coord(i as u32);
+            assert_eq!(cube.edges_coord(), i as u32);
+        }
+    }
+
+    #[test]
+    fn test_corners_coord() {
+        let mut cube = Cube::new();
+        for i in 0..TranspositionTables::CORNERS_SIZE {
+            cube.set_corners_coord(i as u32);
+            assert_eq!(cube.corners_coord(), i as u32);
+        }
+    }
+
+    #[test]
+    fn test_encode() {
+        let mut x = 0u64;
+        let mut cube = Cube::new();
+        for _ in 0..65536 {
+            x = x.wrapping_mul(450349535401847371);
+            x = x.wrapping_add(380506838312516788);
+            let coord = x % 116397388800;
+            cube.decode(coord);
+            assert_eq!(cube.encode(), coord);
+        }
+    }
+
+    #[test]
+    fn test_depth_1() {
+        let mut cube = Cube::new();
+        let solved = cube.encode();
+        let mut arr = [0; 18];
+        println!("{cube:?}");
+        cube.u();
+        println!("u {cube:?}");
+        arr[0] = cube.encode();
+        cube.u();
+        println!("u {cube:?}");
+        arr[1] = cube.encode();
+        cube.u();
+        println!("u {cube:?}");
+        arr[2] = cube.encode();
+        cube.u();
+        println!("u {cube:?}");
+        cube.l();
+        println!("l {cube:?}");
+        arr[3] = cube.encode();
+        cube.l();
+        println!("l {cube:?}");
+        arr[4] = cube.encode();
+        cube.l();
+        println!("l {cube:?}");
+        arr[5] = cube.encode();
+        cube.l();
+        println!("l {cube:?}");
+        cube.f();
+        println!("f {cube:?}");
+        arr[6] = cube.encode();
+        cube.f();
+        println!("f {cube:?}");
+        arr[7] = cube.encode();
+        cube.f();
+        println!("f {cube:?}");
+        arr[8] = cube.encode();
+        cube.f();
+        println!("f {cube:?}");
+        cube.r();
+        println!("r {cube:?}");
+        arr[9] = cube.encode();
+        cube.r();
+        println!("r {cube:?}");
+        arr[10] = cube.encode();
+        cube.r();
+        println!("r {cube:?}");
+        arr[11] = cube.encode();
+        cube.r();
+        println!("r {cube:?}");
+        cube.b();
+        println!("b {cube:?}");
+        arr[12] = cube.encode();
+        cube.b();
+        println!("b {cube:?}");
+        arr[13] = cube.encode();
+        cube.b();
+        println!("b {cube:?}");
+        arr[14] = cube.encode();
+        cube.b();
+        println!("b {cube:?}");
+        cube.d();
+        println!("d {cube:?}");
+        arr[15] = cube.encode();
+        cube.d();
+        println!("d {cube:?}");
+        arr[16] = cube.encode();
+        cube.d();
+        println!("d {cube:?}");
+        arr[17] = cube.encode();
+        cube.d();
+        println!("d {cube:?}");
+
+        assert_eq!(arr[0], arr[2]);
+        assert_eq!(arr[1], solved);
+        assert_eq!(arr[15], arr[17]);
+        assert_eq!(arr[16], solved);
+        println!("{arr:?}");
+    }
+
+    #[test]
+    fn test_coord_cube() {
+        let transposition_tables = TranspositionTables::new();
+        let mut coord_cube = CoordCube::new(&transposition_tables);
+        let mut cube = Cube::new();
+
+        let mut x = 0u64;
+        for _ in 0..65536 {
+            x = x.wrapping_mul(450349535401847371);
+            x = x.wrapping_add(380506838312516788);
+
+            let coord = x % 116397388800;
+
+            cube.decode(coord);
+            coord_cube.decode(coord);
+
+            println!("coord = {coord}");
+            println!("cube = {cube:?}");
+            for i in 0..4 {
+                coord_cube.u();
+                cube.u();
+                println!("u{}", i + 1);
+                println!("cube = {cube:?}");
+                assert_eq!(cube.encode(), coord_cube.encode());
+            }
+            for i in 0..4 {
+                coord_cube.l();
+                cube.l();
+                println!("l{}", i + 1);
+                println!("cube = {cube:?}");
+                assert_eq!(cube.encode(), coord_cube.encode());
+            }
+            for i in 0..4 {
+                coord_cube.f();
+                cube.f();
+                println!("f{}", i + 1);
+                assert_eq!(cube.encode(), coord_cube.encode());
+            }
+            for i in 0..4 {
+                coord_cube.r();
+                cube.r();
+                println!("r{}", i + 1);
+                assert_eq!(cube.encode(), coord_cube.encode());
+            }
+            for i in 0..4 {
+                coord_cube.b();
+                cube.b();
+                println!("b{}", i + 1);
+                assert_eq!(cube.encode(), coord_cube.encode());
+            }
+            for i in 0..4 {
+                coord_cube.d();
+                cube.d();
+                println!("d{}", i + 1);
+                assert_eq!(cube.encode(), coord_cube.encode());
+            }
+        }
+    }
+}
