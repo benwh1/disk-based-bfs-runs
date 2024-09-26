@@ -7,14 +7,75 @@ mod transposition_tables;
 use std::path::PathBuf;
 
 use disk_based_bfs::{
-    bfs::Bfs,
+    builder::BfsBuilder,
     callback::BfsCallback,
-    io::LockedIO,
-    settings::{BfsSettingsBuilder, BfsSettingsProvider, ChunkFilesBehavior, UpdateFilesBehavior},
+    expander::BfsExpander,
+    provider::{BfsSettingsProvider, ChunkFilesBehavior, UpdateFilesBehavior},
 };
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, EnvFilter};
 
 use crate::{coord_cube::CoordCube, transposition_tables::TranspositionTables};
+
+const EXPANSION_NODES_HTM: usize = 6;
+const EXPANSION_NODES_QTM: usize = 4;
+const EXPANSION_NODES_UTM: usize = 2;
+
+#[derive(Clone)]
+struct ExpanderHtm<'a> {
+    cube: CoordCube<'a>,
+}
+
+impl BfsExpander<EXPANSION_NODES_HTM> for ExpanderHtm<'_> {
+    fn expand(&mut self, node: u64, expanded_nodes: &mut [u64; EXPANSION_NODES_HTM]) {
+        self.cube.decode(node);
+        self.cube.u();
+        expanded_nodes[0] = self.cube.encode();
+        self.cube.u();
+        expanded_nodes[1] = self.cube.encode();
+        self.cube.u();
+        expanded_nodes[2] = self.cube.encode();
+        self.cube.ur();
+        expanded_nodes[3] = self.cube.encode();
+        self.cube.r();
+        expanded_nodes[4] = self.cube.encode();
+        self.cube.r();
+        expanded_nodes[5] = self.cube.encode();
+    }
+}
+
+#[derive(Clone)]
+struct ExpanderQtm<'a> {
+    cube: CoordCube<'a>,
+}
+
+impl BfsExpander<EXPANSION_NODES_QTM> for ExpanderQtm<'_> {
+    fn expand(&mut self, node: u64, expanded_nodes: &mut [u64; EXPANSION_NODES_QTM]) {
+        self.cube.decode(node);
+        self.cube.u();
+        expanded_nodes[0] = self.cube.encode();
+        self.cube.u2();
+        expanded_nodes[1] = self.cube.encode();
+        self.cube.ur();
+        expanded_nodes[2] = self.cube.encode();
+        self.cube.r2();
+        expanded_nodes[3] = self.cube.encode();
+    }
+}
+
+#[derive(Clone)]
+struct ExpanderUtm<'a> {
+    cube: CoordCube<'a>,
+}
+
+impl BfsExpander<EXPANSION_NODES_UTM> for ExpanderUtm<'_> {
+    fn expand(&mut self, node: u64, expanded_nodes: &mut [u64; EXPANSION_NODES_UTM]) {
+        self.cube.decode(node);
+        self.cube.up();
+        expanded_nodes[0] = self.cube.encode();
+        self.cube.urp();
+        expanded_nodes[1] = self.cube.encode();
+    }
+}
 
 macro_rules! define_callback {
     ($name:ident, $depth:expr) => {
@@ -37,9 +98,9 @@ define_callback!(CallbackHtm, 26);
 define_callback!(CallbackQtm, 33);
 define_callback!(CallbackUtm, 47);
 
-struct SettingsProvider;
+struct Provider;
 
-impl BfsSettingsProvider for SettingsProvider {
+impl BfsSettingsProvider for Provider {
     fn chunk_root_idx(&self, chunk_idx: usize) -> usize {
         chunk_idx % 4
     }
@@ -76,94 +137,44 @@ pub fn run(metric: Metric) {
         .init();
 
     let transposition_tables = TranspositionTables::new();
-    let solved = CoordCube::new(&transposition_tables).encode();
 
-    let settings = BfsSettingsBuilder::new()
-        .threads(48)
-        // 2 * 48 chunks
-        .chunk_size_bytes(357210000)
-        .update_memory(112 * (1 << 30))
-        .num_update_blocks(2 * 2 * 48 * 48)
-        .capacity_check_frequency(256)
-        .initial_states(&[solved])
-        .state_size(274337280000)
-        .root_directories(&[
-            PathBuf::from("/media/ben/drive1/bfs/4x4-U-2R/"),
-            PathBuf::from("/media/ben/drive2/bfs/4x4-U-2R/"),
-            PathBuf::from("/media/ben/drive3/bfs/4x4-U-2R/"),
-            PathBuf::from("/media/ben/drive4/bfs/4x4-U-2R/"),
-        ])
-        .initial_memory_limit(1 << 32)
-        .available_disk_space_limit(256 * (1 << 30))
-        .update_array_threshold(357210000)
-        .use_locked_io(false)
-        .sync_filesystem(false)
-        .compute_checksums(true)
-        .compress_bit_arrays(true)
-        .settings_provider(SettingsProvider)
-        .build()
-        .unwrap();
-
-    let locked_io = LockedIO::new(
-        &settings,
-        vec![
-            PathBuf::from("/media/ben/drive1/bfs/4x4-U-2R/"),
-            PathBuf::from("/media/ben/drive2/bfs/4x4-U-2R/"),
-            PathBuf::from("/media/ben/drive3/bfs/4x4-U-2R/"),
-            PathBuf::from("/media/ben/drive4/bfs/4x4-U-2R/"),
-        ],
-    );
-
-    let mut cube = CoordCube::new(&transposition_tables);
+    macro_rules! run {
+        ($expander:ident, $callback:ident) => {
+            BfsBuilder::new()
+                .threads(48)
+                // 2 * 48 chunks
+                .chunk_size_bytes(357210000)
+                .update_memory(112 * (1 << 30))
+                .num_update_blocks(2 * 2 * 48 * 48)
+                .capacity_check_frequency(256)
+                .initial_states(&[CoordCube::new(&transposition_tables).encode()])
+                .state_size(274337280000)
+                .root_directories(&[
+                    PathBuf::from("/media/ben/drive1/bfs/4x4-U-2R/"),
+                    PathBuf::from("/media/ben/drive2/bfs/4x4-U-2R/"),
+                    PathBuf::from("/media/ben/drive3/bfs/4x4-U-2R/"),
+                    PathBuf::from("/media/ben/drive4/bfs/4x4-U-2R/"),
+                ])
+                .initial_memory_limit(1 << 32)
+                .available_disk_space_limit(256 * (1 << 30))
+                .update_array_threshold(357210000)
+                .use_locked_io(false)
+                .sync_filesystem(false)
+                .compute_checksums(true)
+                .use_compression(true)
+                .expander($expander {
+                    cube: CoordCube::new(&transposition_tables),
+                })
+                .callback($callback)
+                .settings_provider(Provider)
+                .run_no_defaults()
+                .unwrap()
+        };
+    }
 
     match metric {
-        Metric::Htm => {
-            let expander = move |enc, arr: &mut [_; 6]| {
-                cube.decode(enc);
-                cube.u();
-                arr[0] = cube.encode();
-                cube.u();
-                arr[1] = cube.encode();
-                cube.u();
-                arr[2] = cube.encode();
-                cube.ur();
-                arr[3] = cube.encode();
-                cube.r();
-                arr[4] = cube.encode();
-                cube.r();
-                arr[5] = cube.encode();
-            };
-
-            let bfs = Bfs::new(&settings, &locked_io, expander, CallbackHtm);
-            bfs.run();
-        }
-        Metric::Qtm => {
-            let expander = move |enc, arr: &mut [_; 4]| {
-                cube.decode(enc);
-                cube.u();
-                arr[0] = cube.encode();
-                cube.u2();
-                arr[1] = cube.encode();
-                cube.ur();
-                arr[2] = cube.encode();
-                cube.r2();
-                arr[3] = cube.encode();
-            };
-
-            let bfs = Bfs::new(&settings, &locked_io, expander, CallbackQtm);
-            bfs.run();
-        }
-        Metric::Utm => {
-            let expander = move |enc, arr: &mut [_; 2]| {
-                cube.decode(enc);
-                cube.up();
-                arr[0] = cube.encode();
-                cube.urp();
-                arr[1] = cube.encode();
-            };
-
-            let bfs = Bfs::new(&settings, &locked_io, expander, CallbackUtm);
-            bfs.run();
-        }
+        Metric::Htm => run!(ExpanderHtm, CallbackHtm),
+        Metric::Qtm => run!(ExpanderQtm, CallbackQtm),
+        Metric::Utm => run!(ExpanderUtm, CallbackUtm),
     }
 }

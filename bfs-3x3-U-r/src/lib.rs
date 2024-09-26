@@ -3,10 +3,10 @@
 use std::path::PathBuf;
 
 use disk_based_bfs::{
-    bfs::Bfs,
+    builder::BfsBuilder,
     callback::BfsCallback,
-    io::LockedIO,
-    settings::{BfsSettingsBuilder, BfsSettingsProvider, ChunkFilesBehavior, UpdateFilesBehavior},
+    expander::BfsExpander,
+    provider::{BfsSettingsProvider, ChunkFilesBehavior, UpdateFilesBehavior},
 };
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, EnvFilter};
 
@@ -15,6 +15,32 @@ use crate::{coord_cube::CoordCube, transposition_tables::TranspositionTables};
 mod coord_cube;
 mod cube;
 mod transposition_tables;
+
+const EXPANSION_NODES: usize = 6;
+
+#[derive(Clone)]
+struct Expander<'a> {
+    cube: CoordCube<'a>,
+}
+
+impl BfsExpander<EXPANSION_NODES> for Expander<'_> {
+    fn expand(&mut self, node: u64, expanded_nodes: &mut [u64; EXPANSION_NODES]) {
+        self.cube.decode(node);
+        self.cube.u();
+        expanded_nodes[0] = self.cube.encode();
+        self.cube.u();
+        expanded_nodes[1] = self.cube.encode();
+        self.cube.u();
+        expanded_nodes[2] = self.cube.encode();
+        self.cube.u();
+        self.cube.rw();
+        expanded_nodes[3] = self.cube.encode();
+        self.cube.rw();
+        expanded_nodes[4] = self.cube.encode();
+        self.cube.rw();
+        expanded_nodes[5] = self.cube.encode();
+    }
+}
 
 #[derive(Clone)]
 struct Callback;
@@ -29,9 +55,9 @@ impl BfsCallback for Callback {
     fn end_of_chunk(&self, _: usize, _: usize) {}
 }
 
-struct SettingsProvider;
+struct Provider;
 
-impl BfsSettingsProvider for SettingsProvider {
+impl BfsSettingsProvider for Provider {
     fn chunk_root_idx(&self, chunk_idx: usize) -> usize {
         [0, 1, 2, 3, 1, 2, 3][chunk_idx % 7]
     }
@@ -61,15 +87,14 @@ pub fn run() {
         .init();
 
     let transposition_tables = TranspositionTables::new();
-    let solved = CoordCube::new(&transposition_tables).encode();
 
-    let settings = BfsSettingsBuilder::new()
+    BfsBuilder::new()
         .threads(48)
         .chunk_size_bytes(529079040)
         .update_memory(112 * (1 << 30))
         .num_update_blocks(2 * 48 * 1280)
         .capacity_check_frequency(256)
-        .initial_states(&[solved])
+        .initial_states(&[CoordCube::new(&transposition_tables).encode()])
         .state_size(5417769369600)
         .root_directories(&[
             PathBuf::from("/media/ben/drive1/bfs/3x3-U-r/"),
@@ -83,41 +108,12 @@ pub fn run() {
         .use_locked_io(false)
         .sync_filesystem(true)
         .compute_checksums(true)
-        .compress_bit_arrays(true)
-        .settings_provider(SettingsProvider)
-        .build()
+        .use_compression(true)
+        .expander(Expander {
+            cube: CoordCube::new(&transposition_tables),
+        })
+        .callback(Callback)
+        .settings_provider(Provider)
+        .run_no_defaults()
         .unwrap();
-
-    let mut cube = CoordCube::new(&transposition_tables);
-    let expander = move |enc, arr: &mut [_; 6]| {
-        cube.decode(enc);
-        cube.u();
-        arr[0] = cube.encode();
-        cube.u();
-        arr[1] = cube.encode();
-        cube.u();
-        arr[2] = cube.encode();
-        cube.u();
-        cube.rw();
-        arr[3] = cube.encode();
-        cube.rw();
-        arr[4] = cube.encode();
-        cube.rw();
-        arr[5] = cube.encode();
-    };
-
-    let callback = Callback;
-
-    let locked_io = LockedIO::new(
-        &settings,
-        vec![
-            PathBuf::from("/media/ben/drive1/bfs/3x3-U-r/"),
-            PathBuf::from("/media/ben/drive2/bfs/3x3-U-r/"),
-            PathBuf::from("/media/ben/drive3/bfs/3x3-U-r/"),
-            PathBuf::from("/media/ben/drive4/bfs/3x3-U-r/"),
-        ],
-    );
-
-    let bfs = Bfs::new(&settings, &locked_io, expander, callback);
-    bfs.run();
 }

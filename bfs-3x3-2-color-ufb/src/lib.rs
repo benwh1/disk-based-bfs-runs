@@ -5,14 +5,68 @@ mod transposition_tables;
 use std::path::PathBuf;
 
 use disk_based_bfs::{
-    bfs::Bfs,
+    builder::BfsBuilder,
     callback::BfsCallback,
-    io::LockedIO,
-    settings::{BfsSettingsBuilder, BfsSettingsProvider, ChunkFilesBehavior, UpdateFilesBehavior},
+    expander::BfsExpander,
+    provider::{BfsSettingsProvider, ChunkFilesBehavior, UpdateFilesBehavior},
 };
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, EnvFilter};
 
 use crate::{coord_cube::CoordCube, transposition_tables::TranspositionTables};
+
+const EXPANSION_NODES: usize = 18;
+
+#[derive(Clone)]
+struct Expander<'a> {
+    cube: CoordCube<'a>,
+}
+
+impl BfsExpander<EXPANSION_NODES> for Expander<'_> {
+    fn expand(&mut self, node: u64, expanded_nodes: &mut [u64; EXPANSION_NODES]) {
+        self.cube.decode(node);
+        self.cube.u();
+        expanded_nodes[0] = self.cube.encode();
+        self.cube.u();
+        expanded_nodes[1] = self.cube.encode();
+        self.cube.u();
+        expanded_nodes[2] = self.cube.encode();
+        self.cube.u();
+        self.cube.l();
+        expanded_nodes[3] = self.cube.encode();
+        self.cube.l();
+        expanded_nodes[4] = self.cube.encode();
+        self.cube.l();
+        expanded_nodes[5] = self.cube.encode();
+        self.cube.l();
+        self.cube.f();
+        expanded_nodes[6] = self.cube.encode();
+        self.cube.f();
+        expanded_nodes[7] = self.cube.encode();
+        self.cube.f();
+        expanded_nodes[8] = self.cube.encode();
+        self.cube.f();
+        self.cube.r();
+        expanded_nodes[9] = self.cube.encode();
+        self.cube.r();
+        expanded_nodes[10] = self.cube.encode();
+        self.cube.r();
+        expanded_nodes[11] = self.cube.encode();
+        self.cube.r();
+        self.cube.b();
+        expanded_nodes[12] = self.cube.encode();
+        self.cube.b();
+        expanded_nodes[13] = self.cube.encode();
+        self.cube.b();
+        expanded_nodes[14] = self.cube.encode();
+        self.cube.b();
+        self.cube.d();
+        expanded_nodes[15] = self.cube.encode();
+        self.cube.d();
+        expanded_nodes[16] = self.cube.encode();
+        self.cube.d();
+        expanded_nodes[17] = self.cube.encode();
+    }
+}
 
 #[derive(Clone)]
 struct Callback;
@@ -27,11 +81,11 @@ impl BfsCallback for Callback {
     fn end_of_chunk(&self, _: usize, _: usize) {}
 }
 
-struct SettingsProvider;
+struct Provider;
 
-impl BfsSettingsProvider for SettingsProvider {
+impl BfsSettingsProvider for Provider {
     fn chunk_root_idx(&self, chunk_idx: usize) -> usize {
-        [0, 1, 2, 3, 1, 2, 3][chunk_idx % 7]
+        chunk_idx % 4
     }
 
     fn update_files_behavior(&self, _: usize) -> UpdateFilesBehavior {
@@ -63,16 +117,15 @@ pub fn run() {
         .init();
 
     let transposition_tables = TranspositionTables::new();
-    let solved = CoordCube::new(&transposition_tables).encode() as u64;
 
-    let settings = BfsSettingsBuilder::new()
+    BfsBuilder::new()
         .threads(48)
         // 48 chunks
         .chunk_size_bytes(303118200)
         .update_memory(112 * (1 << 30))
         .num_update_blocks(2 * 48 * 48)
         .capacity_check_frequency(256)
-        .initial_states(&[solved])
+        .initial_states(&[CoordCube::new(&transposition_tables).encode()])
         .state_size(116397388800)
         .root_directories(&[
             PathBuf::from("/media/ben/drive1/bfs/3x3-2-color-tennis-ball/"),
@@ -86,69 +139,12 @@ pub fn run() {
         .use_locked_io(false)
         .sync_filesystem(true)
         .compute_checksums(true)
-        .compress_bit_arrays(true)
-        .settings_provider(SettingsProvider)
-        .build()
+        .use_compression(true)
+        .expander(Expander {
+            cube: CoordCube::new(&transposition_tables),
+        })
+        .callback(Callback)
+        .settings_provider(Provider)
+        .run_no_defaults()
         .unwrap();
-
-    let mut cube = CoordCube::new(&transposition_tables);
-    let expander = move |enc, arr: &mut [_; 18]| {
-        cube.decode(enc);
-        cube.u();
-        arr[0] = cube.encode() as u64;
-        cube.u();
-        arr[1] = cube.encode();
-        cube.u();
-        arr[2] = cube.encode();
-        cube.u();
-        cube.l();
-        arr[3] = cube.encode();
-        cube.l();
-        arr[4] = cube.encode();
-        cube.l();
-        arr[5] = cube.encode();
-        cube.l();
-        cube.f();
-        arr[6] = cube.encode();
-        cube.f();
-        arr[7] = cube.encode();
-        cube.f();
-        arr[8] = cube.encode();
-        cube.f();
-        cube.r();
-        arr[9] = cube.encode();
-        cube.r();
-        arr[10] = cube.encode();
-        cube.r();
-        arr[11] = cube.encode();
-        cube.r();
-        cube.b();
-        arr[12] = cube.encode();
-        cube.b();
-        arr[13] = cube.encode();
-        cube.b();
-        arr[14] = cube.encode();
-        cube.b();
-        cube.d();
-        arr[15] = cube.encode();
-        cube.d();
-        arr[16] = cube.encode();
-        cube.d();
-        arr[17] = cube.encode();
-    };
-
-    let callback = Callback;
-
-    let locked_io = LockedIO::new(
-        &settings,
-        vec![
-            PathBuf::from("/media/ben/drive1/bfs/3x3-2-color-tennis-ball/"),
-            PathBuf::from("/media/ben/drive2/bfs/3x3-2-color-tennis-ball/"),
-            PathBuf::from("/media/ben/drive3/bfs/3x3-2-color-tennis-ball/"),
-            PathBuf::from("/media/ben/drive4/bfs/3x3-2-color-tennis-ball/"),
-        ],
-    );
-
-    let bfs = Bfs::new(&settings, &locked_io, expander, callback);
-    bfs.run();
 }
