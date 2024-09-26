@@ -152,8 +152,8 @@ impl Cube {
 impl From<CoordCube<'_>> for Cube {
     fn from(value: CoordCube<'_>) -> Self {
         let mut cube = Cube::new();
-        cube.set_corners_coord(value.corners as u32);
-        cube.set_ep_coord(value.edges as u32);
+        cube.set_corners_coord(value.corners);
+        cube.set_ep_coord(value.edges);
         cube
     }
 }
