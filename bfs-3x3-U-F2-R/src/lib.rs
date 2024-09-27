@@ -62,15 +62,23 @@ struct Provider;
 
 impl BfsSettingsProvider for Provider {
     fn chunk_root_idx(&self, chunk_idx: usize) -> usize {
-        [0, 1, 2, 3, 1, 2, 3][chunk_idx % 7]
+        chunk_idx % 4
     }
 
-    fn update_files_behavior(&self, _: usize) -> UpdateFilesBehavior {
-        UpdateFilesBehavior::CompressAndKeep
+    fn update_files_behavior(&self, depth: usize) -> UpdateFilesBehavior {
+        if depth >= 12 {
+            UpdateFilesBehavior::CompressAndKeep
+        } else {
+            UpdateFilesBehavior::DontCompress
+        }
     }
 
-    fn chunk_files_behavior(&self, _: usize) -> ChunkFilesBehavior {
-        ChunkFilesBehavior::Keep
+    fn chunk_files_behavior(&self, depth: usize) -> ChunkFilesBehavior {
+        if depth >= 12 {
+            ChunkFilesBehavior::Keep
+        } else {
+            ChunkFilesBehavior::Delete
+        }
     }
 }
 

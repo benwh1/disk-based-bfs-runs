@@ -62,12 +62,20 @@ impl BfsSettingsProvider for Provider {
         [0, 1, 2, 3, 1, 2, 3][chunk_idx % 7]
     }
 
-    fn update_files_behavior(&self, _: usize) -> UpdateFilesBehavior {
-        UpdateFilesBehavior::CompressAndKeep
+    fn update_files_behavior(&self, depth: usize) -> UpdateFilesBehavior {
+        if depth >= 20 {
+            UpdateFilesBehavior::CompressAndKeep
+        } else {
+            UpdateFilesBehavior::DontCompress
+        }
     }
 
-    fn chunk_files_behavior(&self, _: usize) -> ChunkFilesBehavior {
-        ChunkFilesBehavior::Keep
+    fn chunk_files_behavior(&self, depth: usize) -> ChunkFilesBehavior {
+        if depth >= 20 {
+            ChunkFilesBehavior::Keep
+        } else {
+            ChunkFilesBehavior::Delete
+        }
     }
 }
 
