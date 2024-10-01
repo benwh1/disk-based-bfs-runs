@@ -68,9 +68,9 @@ impl BfsSettingsProvider for Provider {
 
     fn update_files_behavior(&self, depth: usize) -> UpdateFilesBehavior {
         if (21..25).contains(&depth) {
-            UpdateFilesBehavior::CompressAndKeep
+            UpdateFilesBehavior::MergeAndKeep
         } else {
-            UpdateFilesBehavior::DontCompress
+            UpdateFilesBehavior::DontMerge
         }
     }
 
