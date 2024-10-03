@@ -40,9 +40,24 @@ impl<'a> CoordMinx<'a> {
         self.edges = self.transposition_tables.u_edges[self.edges as usize];
     }
 
+    pub fn u2p(&mut self) {
+        self.corners = self.transposition_tables.u2p_corners[self.corners as usize];
+        self.edges = self.transposition_tables.u2p_edges[self.edges as usize];
+    }
+
     pub fn r(&mut self) {
         self.corners = self.transposition_tables.r_corners[self.corners as usize];
         self.edges = self.transposition_tables.r_edges[self.edges as usize];
+    }
+
+    pub fn r2p(&mut self) {
+        self.corners = self.transposition_tables.r2p_corners[self.corners as usize];
+        self.edges = self.transposition_tables.r2p_edges[self.edges as usize];
+    }
+
+    pub fn ur(&mut self) {
+        self.corners = self.transposition_tables.ur_corners[self.corners as usize];
+        self.edges = self.transposition_tables.ur_edges[self.edges as usize];
     }
 
     pub fn do_move(&mut self, mv: &str) {
