@@ -18,12 +18,15 @@ mod transposition_tables;
 
 const EXPANSION_NODES_HTM: usize = 6;
 const EXPANSION_NODES_QTM: usize = 4;
+const EXPANSION_NODES_U_R_RW_HTM: usize = 9;
 
 const CALLBACK_BOUND_HTM: usize = 30;
 const CALLBACK_BOUND_QTM: usize = 37;
+const CALLBACK_BOUND_U_R_RW_HTM: usize = 22;
 
 const PROVIDER_BOUND_HTM: usize = 20;
 const PROVIDER_BOUND_QTM: usize = 25;
+const PROVIDER_BOUND_U_R_RW_HTM: usize = 16;
 
 #[derive(Clone)]
 struct ExpanderHtm<'a> {
@@ -72,6 +75,37 @@ impl BfsExpander<EXPANSION_NODES_QTM> for ExpanderQtm<'_> {
 }
 
 #[derive(Clone)]
+struct ExpanderURRwHtm<'a> {
+    cube: CoordCube<'a>,
+}
+
+impl BfsExpander<EXPANSION_NODES_U_R_RW_HTM> for ExpanderURRwHtm<'_> {
+    fn expand(&mut self, node: u64, expanded_nodes: &mut [u64; EXPANSION_NODES_U_R_RW_HTM]) {
+        self.cube.decode(node);
+        self.cube.u();
+        expanded_nodes[0] = self.cube.encode();
+        self.cube.u();
+        expanded_nodes[1] = self.cube.encode();
+        self.cube.u();
+        expanded_nodes[2] = self.cube.encode();
+        self.cube.u();
+        self.cube.r();
+        expanded_nodes[3] = self.cube.encode();
+        self.cube.r();
+        expanded_nodes[4] = self.cube.encode();
+        self.cube.r();
+        expanded_nodes[5] = self.cube.encode();
+        self.cube.r();
+        self.cube.rw();
+        expanded_nodes[6] = self.cube.encode();
+        self.cube.rw();
+        expanded_nodes[7] = self.cube.encode();
+        self.cube.rw();
+        expanded_nodes[8] = self.cube.encode();
+    }
+}
+
+#[derive(Clone)]
 struct Callback(usize);
 
 impl BfsCallback for Callback {
@@ -114,7 +148,13 @@ pub enum Metric {
     Qtm,
 }
 
-pub fn run(metric: Metric) {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Generators {
+    UR,
+    URRw,
+}
+
+pub fn run(metric: Metric, generators: Generators) {
     tracing_subscriber::registry()
         .with(
             EnvFilter::try_from_default_env()
@@ -164,8 +204,16 @@ pub fn run(metric: Metric) {
         };
     }
 
-    match metric {
-        Metric::Htm => run!(ExpanderHtm, CALLBACK_BOUND_HTM, PROVIDER_BOUND_HTM),
-        Metric::Qtm => run!(ExpanderQtm, CALLBACK_BOUND_QTM, PROVIDER_BOUND_QTM),
+    match (metric, generators) {
+        (Metric::Htm, Generators::UR) => run!(ExpanderHtm, CALLBACK_BOUND_HTM, PROVIDER_BOUND_HTM),
+        (Metric::Qtm, Generators::UR) => run!(ExpanderQtm, CALLBACK_BOUND_QTM, PROVIDER_BOUND_QTM),
+        (Metric::Htm, Generators::URRw) => {
+            run!(
+                ExpanderURRwHtm,
+                CALLBACK_BOUND_U_R_RW_HTM,
+                PROVIDER_BOUND_U_R_RW_HTM
+            );
+        }
+        (Metric::Qtm, Generators::URRw) => todo!(),
     }
 }

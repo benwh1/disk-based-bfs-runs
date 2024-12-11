@@ -44,6 +44,22 @@ impl<'a> CoordCube<'a> {
         self.u();
     }
 
+    pub fn r(&mut self) {
+        self.perm = self.transposition_tables.r_perm[self.perm as usize];
+        self.ori = self.transposition_tables.r_ori[self.ori as usize];
+    }
+
+    pub fn r2(&mut self) {
+        self.r();
+        self.r();
+    }
+
+    pub fn r_inv(&mut self) {
+        self.r();
+        self.r();
+        self.r();
+    }
+
     pub fn rw(&mut self) {
         self.perm = self.transposition_tables.rw_perm[self.perm as usize];
         self.ori = self.transposition_tables.rw_ori[self.ori as usize];
