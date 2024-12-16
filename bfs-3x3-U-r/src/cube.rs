@@ -360,6 +360,15 @@ impl Cube {
         self.set_co_coord(coord / 256);
     }
 
+    pub fn encode(&self) -> u64 {
+        self.perm_coord() as u64 * 62208 + self.ori_coord() as u64
+    }
+
+    pub fn decode(&mut self, coord: u64) {
+        self.set_perm_coord((coord / 62208) as u32);
+        self.set_ori_coord((coord % 62208) as u32);
+    }
+
     pub fn to_ksolve_string(&self) -> String {
         let mut s = format!("corners\n");
         for c in self.cp {
