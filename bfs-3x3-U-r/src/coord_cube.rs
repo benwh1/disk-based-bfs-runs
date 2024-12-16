@@ -34,14 +34,18 @@ impl<'a> CoordCube<'a> {
     }
 
     pub fn u2(&mut self) {
-        self.u();
-        self.u();
+        self.perm = self.transposition_tables.u2_perm[self.perm as usize];
+        self.ori = self.transposition_tables.u2_ori[self.ori as usize];
     }
 
     pub fn u_inv(&mut self) {
         self.u();
-        self.u();
-        self.u();
+        self.u2();
+    }
+
+    pub fn ur(&mut self) {
+        self.perm = self.transposition_tables.ur_perm[self.perm as usize];
+        self.ori = self.transposition_tables.ur_ori[self.ori as usize];
     }
 
     pub fn r(&mut self) {
@@ -50,14 +54,13 @@ impl<'a> CoordCube<'a> {
     }
 
     pub fn r2(&mut self) {
-        self.r();
-        self.r();
+        self.perm = self.transposition_tables.r2_perm[self.perm as usize];
+        self.ori = self.transposition_tables.r2_ori[self.ori as usize];
     }
 
     pub fn r_inv(&mut self) {
         self.r();
-        self.r();
-        self.r();
+        self.r2();
     }
 
     pub fn rw(&mut self) {
@@ -66,14 +69,18 @@ impl<'a> CoordCube<'a> {
     }
 
     pub fn rw2(&mut self) {
-        self.rw();
-        self.rw();
+        self.perm = self.transposition_tables.rw2_perm[self.perm as usize];
+        self.ori = self.transposition_tables.rw2_ori[self.ori as usize];
     }
 
     pub fn rw_inv(&mut self) {
         self.rw();
-        self.rw();
-        self.rw();
+        self.rw2();
+    }
+
+    pub fn m(&mut self) {
+        self.perm = self.transposition_tables.m_perm[self.perm as usize];
+        self.ori = self.transposition_tables.m_ori[self.ori as usize];
     }
 
     pub fn do_move(&mut self, mv: &str) {
