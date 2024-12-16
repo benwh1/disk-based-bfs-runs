@@ -359,6 +359,36 @@ impl Cube {
         self.set_eo_coord(coord % 256);
         self.set_co_coord(coord / 256);
     }
+
+    pub fn to_ksolve_string(&self) -> String {
+        let mut s = format!("corners\n");
+        for c in self.cp {
+            s.push_str(&(c + 1).to_string());
+            s.push(' ');
+        }
+        s.pop();
+        s.push('\n');
+        for c in self.co {
+            s.push_str(&c.to_string());
+            s.push(' ');
+        }
+        s.pop();
+        s.push_str("\nedges\n");
+        for e in self.ep {
+            s.push_str(&(e + 1).to_string());
+            s.push(' ');
+        }
+        s.pop();
+        s.push('\n');
+        for e in self.eo {
+            s.push_str(&e.to_string());
+            s.push(' ');
+        }
+        s.pop();
+        s.push_str("\ncenters\n1\n");
+        s.push_str(&self.centers.to_string());
+        s
+    }
 }
 
 impl From<CoordCube<'_>> for Cube {
