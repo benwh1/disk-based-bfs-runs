@@ -9,4 +9,5 @@ bfs-3x3-2-color-ufr = { path = "../bfs-3x3-2-color-ufr" }
 bfs-3x3-U-F2-R = { path = "../bfs-3x3-U-F2-R" }
 bfs-3x3-U-r = { path = "../bfs-3x3-U-r" }
 bfs-4x4-U-2R = { path = "../bfs-4x4-U-2R" }
+bfs-kilominx-6gen-permutation-only = { path = "../bfs-kilominx-6gen-permutation-only" }
 bfs-megaminx-U-R = { path = "../bfs-megaminx-U-R" }
