@@ -136,6 +136,7 @@ checksum = "ceab37c9e94f42414cccae77e930232c517f1bb190947018cffb0ab41fc40992"
 [[package]]
 name = "combinatorics"
 version = "0.1.0"
+source = "git+https://github.com/benwh1/combinatorics.git#9cf289d4538df2d715de48a204085f6351f7a64f"
 
 [[package]]
 name = "disk-based-bfs"

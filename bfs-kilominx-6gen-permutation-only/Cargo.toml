@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-combinatorics = { path = "../../combinatorics" }
+combinatorics = { git = "https://github.com/benwh1/combinatorics.git" }
 disk-based-bfs = "0.1.0"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
