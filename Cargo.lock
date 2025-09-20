@@ -58,6 +58,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bfs-3x3-ep"
+version = "0.1.0"
+dependencies = [
+ "combinatorics",
+ "disk-based-bfs",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "bfs-4x4-U-2R"
 version = "0.1.0"
 dependencies = [

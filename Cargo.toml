@@ -2,6 +2,7 @@
 members = [
     "bfs-3x3-2-color-ufb",
     "bfs-3x3-2-color-ufr",
+    "bfs-3x3-ep",
     "bfs-3x3-U-F2-R",
     "bfs-3x3-U-r",
     "bfs-4x4-U-2R",
