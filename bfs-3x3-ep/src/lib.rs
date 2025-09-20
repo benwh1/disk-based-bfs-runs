@@ -175,7 +175,7 @@ pub fn run(metric: Metric) {
             BfsBuilder::new()
                 .threads(1)
                 // 16 chunks
-                .chunk_size_bytes(29937600)
+                .chunk_size_bytes(3742200)
                 .update_memory(2 * (1 << 30))
                 .num_update_blocks(2 * 16)
                 .capacity_check_frequency(256)
@@ -188,7 +188,7 @@ pub fn run(metric: Metric) {
                 ])
                 .initial_memory_limit(1 << 24)
                 .available_disk_space_limit(4 * (1 << 30))
-                .update_array_threshold(29937600)
+                .update_array_threshold(3742200)
                 .use_locked_io(false)
                 .sync_filesystem(false)
                 .compute_checksums(true)
