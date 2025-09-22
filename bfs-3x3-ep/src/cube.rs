@@ -27,11 +27,11 @@ impl Cube {
     }
 
     pub fn l(&mut self) {
-        cycle4!(self.ep, 1, 4, 8, 5);
+        cycle4!(self.ep, 1, 4, 9, 5);
     }
 
     pub fn f(&mut self) {
-        cycle4!(self.ep, 0, 7, 10, 6);
+        cycle4!(self.ep, 0, 7, 10, 4);
     }
 
     pub fn r(&mut self) {
