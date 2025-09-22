@@ -6,5 +6,6 @@ edition = "2021"
 [dependencies]
 combinatorics = { git = "https://github.com/benwh1/combinatorics.git" }
 disk-based-bfs = "0.1.0"
+rayon = "1.11.0"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

@@ -1,3 +1,7 @@
+use rayon::iter::{
+    IndexedParallelIterator as _, IntoParallelRefMutIterator as _, ParallelIterator,
+};
+
 use crate::cube::{Cube, EP_SIZE};
 
 #[derive(Debug, PartialEq)]
@@ -19,28 +23,23 @@ impl TranspositionTables {
         let mut b = vec![0; EP_SIZE];
         let mut d = vec![0; EP_SIZE];
 
-        let mut cube = Cube::new();
-
-        for i in 0..EP_SIZE {
-            cube.set_ep_coord(i as u32);
-            cube.u();
-            u[i] = cube.ep_coord();
-            cube.up();
-            cube.r();
-            r[i] = cube.ep_coord();
-            cube.rp();
-            cube.f();
-            f[i] = cube.ep_coord();
-            cube.fp();
-            cube.l();
-            l[i] = cube.ep_coord();
-            cube.lp();
-            cube.b();
-            b[i] = cube.ep_coord();
-            cube.bp();
-            cube.d();
-            d[i] = cube.ep_coord();
+        macro_rules! par_build_table {
+            ($table:ident) => {
+                $table.par_iter_mut().enumerate().for_each(|(i, val)| {
+                    let mut cube = Cube::new();
+                    cube.set_ep_coord(i as u32);
+                    cube.$table();
+                    *val = cube.ep_coord();
+                });
+            };
         }
+
+        par_build_table!(u);
+        par_build_table!(l);
+        par_build_table!(f);
+        par_build_table!(r);
+        par_build_table!(b);
+        par_build_table!(d);
 
         Self { u, l, f, r, b, d }
     }
