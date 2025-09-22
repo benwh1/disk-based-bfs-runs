@@ -224,11 +224,9 @@ pub fn run(metric: Metric) {
                 .capacity_check_frequency(256)
                 .initial_states(&[CoordCube::new(&transposition_tables).encode()])
                 .state_size(479001600)
-                .root_directories(&[
-                    PathBuf::from(
-                        "/home/ben/programs/rust/disk-based-bfs-runs/runs/bfs-3x3-ep/htm/",
-                    ),
-                ])
+                .root_directories(&[PathBuf::from(
+                    "/home/ben/programs/rust/disk-based-bfs-runs/runs/bfs-3x3-ep/htm/",
+                )])
                 .initial_memory_limit(1 << 24)
                 .available_disk_space_limit(4 * (1 << 30))
                 .update_array_threshold(3742200)
