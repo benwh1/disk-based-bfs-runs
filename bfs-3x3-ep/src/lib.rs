@@ -139,7 +139,7 @@ impl BfsSettingsProvider for Provider {
     }
 
     fn update_files_behavior(&self, _: usize) -> UpdateFilesBehavior {
-        UpdateFilesBehavior::MergeAndDelete
+        UpdateFilesBehavior::DontMerge
     }
 
     fn chunk_files_behavior(&self, _: usize) -> ChunkFilesBehavior {
